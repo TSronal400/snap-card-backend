@@ -1,0 +1,29 @@
+==================================================
+MANUAL DE USUARIO — SNAP CARD
+==================================================
+
+Bienvenido al Manual de Usuario oficial de Snap Card, la aplicación definitiva para descubrir, escanear, valorar y coleccionar cartas TCG.
+
+1. PRIMEROS PASOS: REGISTRO E INICIO DE SESIÓN
+--------------------------------------------------
+- Pantalla de Bienvenida: Al abrir la aplicación, presiona "Comenzar aventura".
+- Crear una Cuenta:
+  * Selecciona "Crear cuenta".
+  * Ingresa tu Nombre de coleccionista, Correo electrónico y Contraseña (mínimo 8 caracteres).
+  * Presiona "Registrarse".
+- Iniciar Sesión: Ingresa tus datos y presiona "Iniciar sesión".
+
+2. MENÚ PRINCIPAL (LAS 5 PESTAÑAS)
+--------------------------------------------------
+- Colección: Muestra las cartas que has descubierto. En la parte superior verás el Valor Total Acumulado ($ USD). Puedes eliminar cartas tocando el icono de papelera.
+- Escanear:
+  * Escanear (Cámara): Abre la cámara para fotografiar una carta física y añadirla a tu colección.
+  * Simular escaneo: Permite descubrir cartas al azar al instante.
+- Lupa (Búsqueda): Explora la base de datos global de cartas escribiendo nombres o filtrando por categorías (Legendaria, Épica, Rara, Especial).
+- IA Bot (Asistente IA Snap): Chat inteligente para consultar precios del mercado, autenticidad y consejos de colección.
+- Perfil: Muestra tus datos. Incluye opciones funcionales de Editar perfil, Notificaciones, Apariencia, Ayuda y Soporte (envío de tickets), Acerca de y Cerrar sesión.
+
+3. PREGUNTAS FRECUENTES
+--------------------------------------------------
+- ¿Necesito Internet? Sí, la app se conecta en tiempo real a la base de datos en la nube (Vercel).
+- ¿Qué pasa si cierro sesión? Tus cartas y datos están seguros en la nube. Solo vuelve a iniciar sesión con tu correo y contraseña.
