@@ -1529,78 +1529,7 @@ class _SearchScreenState extends State<SearchScreen> {
   );
 },
                             
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.12),
-                                    ),
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 8, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: Colors.black.withOpacity(0.3),
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                '\$${card.price.toStringAsFixed(0)}',
-                                                style: const TextStyle(
-                                                  color: Color(0xFFFFD17A),
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                              ),
-                                            ),
-                                            Icon(
-                                              icon,
-                                              color: Colors.white.withOpacity(0.8),
-                                              size: 18,
-                                            ),
-                                          ],
-                                        ),
-                                        const Spacer(),
-                                        Center(
-                                          child: Icon(
-                                            icon,
-                                            size: 52,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        Text(
-                                          card.category.toUpperCase(),
-                                          style: TextStyle(
-                                            color: Colors.white.withOpacity(0.7),
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: 1,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          card.name,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 13,
-                                            height: 1.1,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                                
             ),
           ],
         ),
