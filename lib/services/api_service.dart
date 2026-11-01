@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../models/card_item.dart';
+import '../models/tcgdex_card.dart';
 
 class ApiService {
   // URL de producción en Vercel
