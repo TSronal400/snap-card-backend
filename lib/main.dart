@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'services/api_service.dart';
 import 'models/tcgdex_card.dart';
 import 'package:image_picker/image_picker.dart';
 import 'models/user.dart';
