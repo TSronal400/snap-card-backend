@@ -1439,17 +1439,96 @@ class _SearchScreenState extends State<SearchScreen> {
                                 childAspectRatio: 0.70,
                               ),
                               itemBuilder: (context, index) {
-                                final card = searchResults[index];
-                                final colors = _getElementColors(card.elementType);
-                                final icon = _getElementIcon(card.elementType);
+  final card = searchResults[index];
+  final colors = _getElementColors(card.category);
 
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: colors,
-                                    ),
+  return Container(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: colors,
+      ),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(
+        color: Colors.white.withOpacity(0.12),
+      ),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 3,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              card.rarity,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFFFFD17A),
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: Center(
+              child: card.imageUrl.isNotEmpty
+                  ? Image.network(
+                      card.imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) {
+                        return const Icon(
+                          Icons.image_not_supported,
+                          color: Colors.white54,
+                          size: 45,
+                        );
+                      },
+                    )
+                  : const Icon(
+                      Icons.image_not_supported,
+                      color: Colors.white54,
+                      size: 45,
+                    ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            card.category.toUpperCase(),
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            card.name,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              height: 1.1,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+},
+                            
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                       color: Colors.white.withOpacity(0.12),
