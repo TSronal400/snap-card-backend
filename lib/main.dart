@@ -1241,32 +1241,41 @@ class _SearchScreenState extends State<SearchScreen> {
     } catch (_) {}
   }
 
-  Future<void> _performSearch() async {
-    setState(() {
-      isLoading = true;
-      errorMessage = null;
-    });
+ Future<void> _performSearch() async {
+  final query = searchController.text.trim();
 
-    try {
-      final results = await ApiService.searchCards(
-        query: searchController.text.trim(),
-        category: selectedCategory,
-      );
-      if (mounted) {
-        setState(() {
-          searchResults = results;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          errorMessage = 'Error al conectar con la base de datos de cartas.';
-          isLoading = false;
-        });
-      }
+  if (query.isEmpty) {
+    setState(() {
+      searchResults = [];
+      errorMessage = null;
+      isLoading = false;
+    });
+    return;
+  }
+
+  setState(() {
+    isLoading = true;
+    errorMessage = null;
+  });
+
+  try {
+    final results = await ApiService.searchTcgdexCards(query);
+
+    if (mounted) {
+      setState(() {
+        searchResults = results;
+        isLoading = false;
+      });
+    }
+  } catch (e) {
+    if (mounted) {
+      setState(() {
+        errorMessage = 'Error al conectar con TCGdex.';
+        isLoading = false;
+      });
     }
   }
+}
 
   IconData _getElementIcon(String elementType) {
     switch (elementType.toLowerCase()) {
