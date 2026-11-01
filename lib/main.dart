@@ -1211,7 +1211,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController searchController = TextEditingController();
-  List<CardItem> searchResults = [];
+  List<TcgdexCard> searchResults = [];
   List<String> categories = ['Todas', 'Legendaria', 'Épica', 'Rara', 'Especial'];
   String selectedCategory = 'Todas';
   bool isLoading = false;
