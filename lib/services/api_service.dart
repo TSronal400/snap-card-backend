@@ -195,7 +195,30 @@ class ApiService {
       throw ApiException('Error al buscar cartas en la base de datos');
     }
   }
+  
+  /// Buscar cartas directamente en TCGdex
+  static Future<List<TcgdexCard>> searchTcgdexCards(String query) async {
+    final uri = Uri.parse('$baseUrl/cards/tcgdex/search').replace(
+      queryParameters: {'q': query.trim()},
+    );
 
+    final response = await http.get(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final List list = jsonDecode(response.body) as List;
+
+      return list
+          .map((item) => TcgdexCard.fromJson(
+                item as Map<String, dynamic>,
+              ))
+          .toList();
+    } else {
+      throw ApiException('Error al buscar cartas en TCGdex');
+    }
+  }
   /// Obtener categorías únicas de cartas
   static Future<List<String>> getCategories() async {
     try {
