@@ -6,7 +6,7 @@ import '../models/card_item.dart';
 
 class ApiService {
   // URL de producción en Vercel
-  static String baseUrl = 'https://snap-card-amlm.vercel.app';
+  static String baseUrl = 'https://snap-card-backend.vercel.app';
 
   static const String _tokenKey = 'snapcard_auth_token';
   static const String _userDataKey = 'snapcard_user_data';
