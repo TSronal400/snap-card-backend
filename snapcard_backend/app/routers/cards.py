@@ -34,12 +34,17 @@ def search_external_cards(
             stage,
             illustrator
         FROM public.tcgdex_cards
-        WHERE
-            name ILIKE :term
-            OR id ILIKE :term
-            OR set_name ILIKE :term
-        ORDER BY name ASC
-        LIMIT 50
+       WHERE
+    name ILIKE :term
+    OR id ILIKE :term
+    OR set_name ILIKE :term
+ORDER BY
+    CASE
+        WHEN name ILIKE :term THEN 0
+        ELSE 1
+    END,
+    name ASC
+LIMIT 50
     """)
 
     results = db.execute(
