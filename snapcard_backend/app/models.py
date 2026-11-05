@@ -39,3 +39,14 @@ class SupportTicket(Base):
     user_email: Mapped[str] = mapped_column(String(255))
     message: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+class TcgdexUserCollection(Base):
+    __tablename__ = "tcgdex_user_collections"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)
+    tcgdex_card_id: Mapped[str] = mapped_column(String(50), index=True)
+    acquired_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc)
+    )
