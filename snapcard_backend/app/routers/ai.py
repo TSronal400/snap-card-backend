@@ -28,7 +28,7 @@ class ChatResponse(BaseModel):
 
 
 def ask_gemini(parts: list, json_mode: bool = False) -> str:
-    api_key = settings.gemini_api_key
+    api_key = (settings.gemini_api_key or "").strip()
 
     if not api_key:
         raise HTTPException(
