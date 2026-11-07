@@ -69,31 +69,38 @@ class ApiService {
     required String email,
     required String password,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/register'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'name': name.trim(),
-        'email': email.trim().toLowerCase(),
-        'password': password,
-      }),
-    );
-
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 201) {
-      final auth = AuthResponse.fromJson(
-        data as Map<String, dynamic>,
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': name.trim(),
+          'email': email.trim().toLowerCase(),
+          'password': password,
+        }),
       );
 
-      await _saveSession(auth);
-      return auth;
-    } else {
-      final detail = data is Map && data.containsKey('detail')
-          ? data['detail'].toString()
-          : 'Error al registrar la cuenta';
+      dynamic data;
+      try {
+        data = jsonDecode(response.body);
+      } catch (_) {
+        data = null;
+      }
 
-      throw ApiException(detail);
+      if (response.statusCode == 201 && data is Map<String, dynamic>) {
+        final auth = AuthResponse.fromJson(data);
+        await _saveSession(auth);
+        return auth;
+      } else {
+        final detail = data is Map && data.containsKey('detail')
+            ? data['detail'].toString()
+            : 'Error en el servidor (${response.statusCode})';
+
+        throw ApiException(detail);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('No se pudo conectar con el servidor ($e)');
     }
   }
 
@@ -102,30 +109,39 @@ class ApiService {
     required String email,
     required String password,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email.trim().toLowerCase(),
-        'password': password,
-      }),
-    );
-
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200) {
-      final auth = AuthResponse.fromJson(
-        data as Map<String, dynamic>,
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email.trim().toLowerCase(),
+          'password': password,
+        }),
       );
 
-      await _saveSession(auth);
-      return auth;
-    } else {
-      final detail = data is Map && data.containsKey('detail')
-          ? data['detail'].toString()
-          : 'Correo o contraseña incorrectos';
+      dynamic data;
+      try {
+        data = jsonDecode(response.body);
+      } catch (_) {
+        data = null;
+      }
 
-      throw ApiException(detail);
+      if (response.statusCode == 200 && data is Map<String, dynamic>) {
+        final auth = AuthResponse.fromJson(data);
+        await _saveSession(auth);
+        return auth;
+      } else {
+        final detail = data is Map && data.containsKey('detail')
+            ? data['detail'].toString()
+            : response.statusCode == 401
+                ? 'Correo o contraseña incorrectos'
+                : 'Error en el servidor (${response.statusCode})';
+
+        throw ApiException(detail);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('No se pudo conectar con el servidor ($e)');
     }
   }
 

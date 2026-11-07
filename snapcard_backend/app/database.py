@@ -19,8 +19,13 @@ connect_args = {}
 # Conexión segura SSL para Supabase
 if "supabase" in db_url.lower():
     cert_path = Path(__file__).resolve().parent.parent / "supabase-ca.crt"
-
-    connect_args["ssl_context"] = ssl.create_default_context(cafile=str(cert_path))
+    if cert_path.is_file():
+        connect_args["ssl_context"] = ssl.create_default_context(cafile=str(cert_path))
+    else:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        connect_args["ssl_context"] = ctx
 
 if db_url.startswith("sqlite"):
     connect_args["check_same_thread"] = False

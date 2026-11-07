@@ -116,14 +116,20 @@ def seed_cards():
     finally:
         db.close()
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
+def init_db():
     try:
         Base.metadata.create_all(bind=engine)
         seed_cards()
     except Exception as e:
         print(f"Error creando tablas en BD: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
     yield
+
+# Inicializar tablas en la importación para entornos serverless (Vercel)
+init_db()
 
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
 
