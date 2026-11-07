@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'models/user.dart';
 import 'models/card_item.dart';
 import 'services/api_service.dart';
+import 'dart:async';
 
 void main() {
   runApp(const SnapCardApp());
@@ -13,6 +14,77 @@ void main() {
 // URL RAW exacta de tu repositorio de GitHub
 const String miImagenGitHubUrl =
     'https://raw.githubusercontent.com/dahianamoran05-tech/Snap-Card-/main/this%20e.jpg';
+class AppHeader extends StatelessWidget {
+  const AppHeader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFB13B), Color(0xFFE65B19)],
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(
+            Icons.style_rounded,
+            color: Colors.white,
+            size: 25,
+          ),
+        ),
+        const SizedBox(width: 10),
+        const Text(
+          'SNAP CARD',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 19,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class FeatureText extends StatelessWidget {
+  final String text;
+
+  const FeatureText(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Color(0xFFFFB13B),
+        fontSize: 10,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.1,
+      ),
+    );
+  }
+}
+
+class FeatureDot extends StatelessWidget {
+  const FeatureDot({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 4,
+      height: 4,
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFB13B),
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+}
 
 class SnapCardApp extends StatelessWidget {
   const SnapCardApp({super.key});
@@ -101,7 +173,7 @@ class WelcomeScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const AppHeader(),
+                  AppHeader(),
                   const Spacer(),
                   const Row(
                     children: [
@@ -155,7 +227,7 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const Wrap(
+                  Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
                     spacing: 9,
                     children: [
@@ -580,6 +652,7 @@ class _SnapCardHomeState extends State<SnapCardHome> {
 // ====================================================================
 // 4. PANTALLA DE COLECCIÓN CON VALOR ACUMULADO
 // ====================================================================
+ 
 class CollectionScreen extends StatefulWidget {
   const CollectionScreen({super.key});
 
@@ -588,7 +661,8 @@ class CollectionScreen extends StatefulWidget {
 }
 
 class _CollectionScreenState extends State<CollectionScreen> {
-  List<CardItem> collection = [];
+  List<dynamic> collection = [];
+  List<TcgdexCard> wishlist = [];
   bool isLoading = true;
 
   @override
@@ -598,29 +672,55 @@ class _CollectionScreenState extends State<CollectionScreen> {
   }
 
   Future<void> _loadCollection() async {
-    setState(() => isLoading = true);
+    if (mounted) {
+      setState(() => isLoading = true);
+    }
+
+    List<CardItem> normalCards = [];
+    List<TcgdexCard> tcgdexCards = [];
+    List<TcgdexCard> wishlistCards = [];
+
     try {
-      final items = await ApiService.getUserCollection();
-      if (mounted) {
-        setState(() {
-          collection = items;
-          isLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => isLoading = false);
+      normalCards = await ApiService.getUserCollection();
+    } catch (e) {
+      debugPrint('Error cargando cartas normales: $e');
+    }
+
+    try {
+      tcgdexCards = await ApiService.getTcgdexCollection();
+    } catch (e) {
+      debugPrint('Error cargando cartas TCGdex: $e');
+    }
+
+    try {
+      wishlistCards = await ApiService.getTcgdexWishlist();
+    } catch (e) {
+      debugPrint('Error cargando cartas deseadas: $e');
+    }
+
+    if (mounted) {
+      setState(() {
+        collection = [...normalCards, ...tcgdexCards];
+        wishlist = wishlistCards;
+        isLoading = false;
+      });
     }
   }
 
-  double get totalPrice => collection.fold(0, (sum, c) => sum + c.price);
+  double get totalPrice => collection
+      .whereType<CardItem>()
+      .fold<double>(0, (sum, card) => sum + card.price);
 
-  void _confirmDeleteCard(CardItem card) {
+  void _confirmDeleteCard(dynamic card) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF21120E),
-          title: const Text('Eliminar Carta', style: TextStyle(color: Color(0xFFFFFAF3))),
+          title: const Text(
+            'Eliminar Carta',
+            style: TextStyle(color: Color(0xFFFFFAF3)),
+          ),
           content: Text(
             '¿Estás seguro de que deseas eliminar "${card.name}" de tu colección?',
             style: const TextStyle(color: Colors.white70),
@@ -628,15 +728,30 @@ class _CollectionScreenState extends State<CollectionScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar', style: TextStyle(color: Colors.white54)),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.white54),
+              ),
             ),
             FilledButton(
               onPressed: () async {
                 Navigator.pop(context);
+
                 try {
-                  await ApiService.removeCardFromCollection(card.id);
-                  _loadCollection();
+                  if (card is TcgdexCard) {
+                    await ApiService.removeTcgdexCardFromCollection(
+                      card.id,
+                    );
+                  } else {
+                    await ApiService.removeCardFromCollection(
+                      (card as CardItem).id,
+                    );
+                  }
+
+                  await _loadCollection();
+
                   if (!mounted) return;
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Carta eliminada de la colección'),
@@ -645,6 +760,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                   );
                 } catch (e) {
                   if (!mounted) return;
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(e.toString()),
@@ -653,7 +769,72 @@ class _CollectionScreenState extends State<CollectionScreen> {
                   );
                 }
               },
-              style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+              ),
+              child: const Text('Eliminar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteWishlistCard(TcgdexCard card) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF21120E),
+          title: const Text(
+            'Eliminar Carta Deseada',
+            style: TextStyle(color: Color(0xFFFFFAF3)),
+          ),
+          content: Text(
+            '¿Estás seguro de que deseas eliminar "${card.name}" de Cartas deseadas?',
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(context);
+
+                try {
+                  await ApiService.removeTcgdexCardFromWishlist(
+                    card.id,
+                  );
+
+                  await _loadCollection();
+
+                  if (!mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Carta eliminada de Cartas deseadas'),
+                      backgroundColor: Color(0xFFEA7424),
+                    ),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(e.toString()),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+              ),
               child: const Text('Eliminar'),
             ),
           ],
@@ -696,6 +877,108 @@ class _CollectionScreenState extends State<CollectionScreen> {
     }
   }
 
+  Widget _buildWishlistCard(TcgdexCard card) {
+    final colors = _getElementColors('normal');
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: colors,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.12),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'DESEADA',
+                    style: TextStyle(
+                      color: Color(0xFFFFD17A),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => _confirmDeleteWishlistCard(card),
+                  child: Icon(
+                    Icons.delete_outline,
+                    color: Colors.white.withOpacity(0.8),
+                    size: 18,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Expanded(
+              flex: 4,
+              child: Center(
+                child: card.imageUrl.isNotEmpty
+                    ? Image.network(
+                        card.imageUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.style,
+                            size: 52,
+                            color: Colors.white,
+                          );
+                        },
+                      )
+                    : const Icon(
+                        Icons.style,
+                        size: 52,
+                        color: Colors.white,
+                      ),
+              ),
+            ),
+            const Spacer(),
+            Text(
+              card.category.toUpperCase(),
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              card.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                height: 1.1,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -704,16 +987,22 @@ class _CollectionScreenState extends State<CollectionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AppHeader(),
+            AppHeader(),
             const SizedBox(height: 24),
+
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF29150F), Color(0xFF1A0D0A)],
+                  colors: [
+                    Color(0xFF29150F),
+                    Color(0xFF1A0D0A),
+                  ],
                 ),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFFFA33B).withOpacity(0.3)),
+                border: Border.all(
+                  color: const Color(0xFFFFA33B).withOpacity(0.3),
+                ),
               ),
               child: Row(
                 children: [
@@ -757,7 +1046,9 @@ class _CollectionScreenState extends State<CollectionScreen> {
                 ],
               ),
             ),
+
             const SizedBox(height: 20),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -771,12 +1062,17 @@ class _CollectionScreenState extends State<CollectionScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.refresh, color: Color(0xFFFFB03B)),
+                  icon: const Icon(
+                    Icons.refresh,
+                    color: Color(0xFFFFB03B),
+                  ),
                   onPressed: _loadCollection,
                 ),
               ],
             ),
+
             const SizedBox(height: 4),
+
             Text(
               '${collection.length} cartas descubiertas',
               style: const TextStyle(
@@ -784,107 +1080,264 @@ class _CollectionScreenState extends State<CollectionScreen> {
                 fontSize: 13,
               ),
             ),
+
             const SizedBox(height: 14),
+
             Expanded(
               child: isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFEA7424)))
-                  : collection.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.style_outlined, size: 64, color: Colors.white.withOpacity(0.2)),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Aún no tienes cartas en tu colección.\n¡Usa el escáner para descubrir y añadir cartas!',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.4),
-                              ),
-                            ],
-                          ),
-                        )
-                      : GridView.builder(
-                          itemCount: collection.length,
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 14,
-                            mainAxisSpacing: 14,
-                            childAspectRatio: 0.70,
-                          ),
-                          itemBuilder: (context, index) {
-                            final card = collection[index];
-                            final colors = _getElementColors(card.elementType);
-                            final icon = _getElementIcon(card.elementType);
-
-                            return Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: colors,
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFEA7424),
+                      ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      children: [
+                        if (collection.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 35,
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.style_outlined,
+                                  size: 64,
+                                  color: Colors.white.withOpacity(0.2),
                                 ),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.white.withOpacity(0.12)),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black.withOpacity(0.3),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            '\$${card.price.toStringAsFixed(0)}',
-                                            style: const TextStyle(
-                                              color: Color(0xFFFFD17A),
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w800,
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Aún no tienes cartas en tu colección.\n¡Usa el escáner para descubrir y añadir cartas!',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 13,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics:
+                                const NeverScrollableScrollPhysics(),
+                            itemCount: collection.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 14,
+                              mainAxisSpacing: 14,
+                              childAspectRatio: 0.70,
+                            ),
+                            itemBuilder: (context, index) {
+                              final card = collection[index];
+                              final bool isTcgdex =
+                                  card is TcgdexCard;
+
+                              final colors = isTcgdex
+                                  ? _getElementColors('normal')
+                                  : _getElementColors(
+                                      card.elementType,
+                                    );
+
+                              final icon = isTcgdex
+                                  ? Icons.style
+                                  : _getElementIcon(
+                                      card.elementType,
+                                    );
+
+                              final String priceText = isTcgdex
+                                  ? 'Por calcular'
+                                  : '\$${card.price.toStringAsFixed(0)}';
+
+                              final String imageUrl = card.imageUrl;
+
+                              return Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: colors,
+                                  ),
+                                  borderRadius:
+                                      BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.12),
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Container(
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black
+                                                  .withOpacity(0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              priceText,
+                                              style: const TextStyle(
+                                                color: Color(0xFFFFD17A),
+                                                fontSize: 11,
+                                                fontWeight:
+                                                    FontWeight.w800,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () => _confirmDeleteCard(card),
-                                          child: Icon(Icons.delete_outline, color: Colors.white.withOpacity(0.8), size: 18),
-                                        ),
-                                      ],
-                                    ),
-                                    const Spacer(),
-                                    Center(child: Icon(icon, size: 52, color: Colors.white)),
-                                    const Spacer(),
-                                    Text(
-                                      card.category.toUpperCase(),
-                                      style: TextStyle(
-                                        color: Colors.white.withOpacity(0.7),
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 1,
+                                          GestureDetector(
+                                            onTap: () =>
+                                                _confirmDeleteCard(card),
+                                            child: Icon(
+                                              Icons.delete_outline,
+                                              color: Colors.white
+                                                  .withOpacity(0.8),
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      card.name,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 13,
-                                        height: 1.1,
-                                        fontWeight: FontWeight.w800,
+                                      const Spacer(),
+                                      Expanded(
+                                        flex: 4,
+                                        child: Center(
+                                          child: imageUrl.isNotEmpty
+                                              ? Image.network(
+                                                  imageUrl,
+                                                  fit: BoxFit.contain,
+                                                  errorBuilder: (
+                                                    context,
+                                                    error,
+                                                    stackTrace,
+                                                  ) {
+                                                    return Icon(
+                                                      icon,
+                                                      size: 52,
+                                                      color: Colors.white,
+                                                    );
+                                                  },
+                                                )
+                                              : Icon(
+                                                  icon,
+                                                  size: 52,
+                                                  color: Colors.white,
+                                                ),
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                      const Spacer(),
+                                      Text(
+                                        card.category.toUpperCase(),
+                                        style: TextStyle(
+                                          color: Colors.white
+                                              .withOpacity(0.7),
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        card.name,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                          height: 1.1,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
+
+                        const SizedBox(height: 28),
+
+                        const Text(
+                          'Cartas deseadas',
+                          style: TextStyle(
+                            color: Color(0xFFFFFAF3),
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1,
+                          ),
                         ),
+
+                        const SizedBox(height: 4),
+
+                        Text(
+                          '${wishlist.length} cartas que deseas conseguir',
+                          style: const TextStyle(
+                            color: Color.fromRGBO(255, 250, 243, 0.6),
+                            fontSize: 13,
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        if (wishlist.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 25,
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.favorite_border,
+                                  size: 54,
+                                  color: Colors.white.withOpacity(0.2),
+                                ),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Todavía no tienes cartas deseadas.\n¡Explora la Lupa y guarda las cartas que quieres conseguir!',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 13,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics:
+                                const NeverScrollableScrollPhysics(),
+                            itemCount: wishlist.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 14,
+                              mainAxisSpacing: 14,
+                              childAspectRatio: 0.70,
+                            ),
+                            itemBuilder: (context, index) {
+                              return _buildWishlistCard(
+                                wishlist[index],
+                              );
+                            },
+                          ),
+                      ],
+                    ),
             ),
           ],
         ),
@@ -1069,7 +1522,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
         child: Column(
           children: [
-            const AppHeader(),
+            AppHeader(),
             const SizedBox(height: 28),
             const Text(
               'Escanea una carta',
@@ -1202,6 +1655,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
 // ====================================================================
 // 6. PANTALLA DE LUPA / BÚSQUEDA EXCLUSIVA
 // ====================================================================
+
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -1211,6 +1665,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController searchController = TextEditingController();
+  Timer? _debounce;
   List<TcgdexCard> searchResults = [];
   List<String> categories = ['Todas', 'Legendaria', 'Épica', 'Rara', 'Especial'];
   String selectedCategory = 'Todas';
@@ -1226,6 +1681,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     searchController.dispose();
     super.dispose();
   }
@@ -1241,41 +1697,41 @@ class _SearchScreenState extends State<SearchScreen> {
     } catch (_) {}
   }
 
- Future<void> _performSearch() async {
-  final query = searchController.text.trim();
+  Future<void> _performSearch() async {
+    final query = searchController.text.trim();
 
-  if (query.isEmpty) {
+    if (query.isEmpty) {
+      setState(() {
+        searchResults = [];
+        errorMessage = null;
+        isLoading = false;
+      });
+      return;
+    }
+
     setState(() {
-      searchResults = [];
+      isLoading = true;
       errorMessage = null;
-      isLoading = false;
     });
-    return;
-  }
 
-  setState(() {
-    isLoading = true;
-    errorMessage = null;
-  });
+    try {
+      final results = await ApiService.searchTcgdexCards(query);
 
-  try {
-    final results = await ApiService.searchTcgdexCards(query);
-
-    if (mounted) {
-      setState(() {
-        searchResults = results;
-        isLoading = false;
-      });
-    }
-  } catch (e) {
-    if (mounted) {
-      setState(() {
-        errorMessage = 'Error al conectar con TCGdex.';
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          searchResults = results;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          errorMessage = 'Error al conectar con TCGdex.';
+          isLoading = false;
+        });
+      }
     }
   }
-}
 
   IconData _getElementIcon(String elementType) {
     switch (elementType.toLowerCase()) {
@@ -1319,7 +1775,7 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AppHeader(),
+            AppHeader(),
             const SizedBox(height: 28),
             const Text(
               'Búsqueda',
@@ -1339,31 +1795,51 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            TextField(
-              controller: searchController,
-              onChanged: (_) => _performSearch(),
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Buscar cartas...',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFFFFB13B)),
-                suffixIcon: searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white54),
-                        onPressed: () {
-                          searchController.clear();
-                          _performSearch();
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: const Color(0xFF21120E),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
+           TextField(
+  controller: searchController,
+  onChanged: (_) {
+    _debounce?.cancel();
+    _debounce = Timer(
+      const Duration(milliseconds: 500),
+      _performSearch,
+    );
+  },
+  style: const TextStyle(color: Colors.white),
+  cursorColor: const Color(0xFFFFB13B),
+  keyboardAppearance: Brightness.dark,
+  decoration: InputDecoration(
+    hintText: 'Buscar cartas...',
+    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+    prefixIcon: const Icon(
+      Icons.search,
+      color: Color(0xFFFFB13B),
+    ),
+    suffixIcon: searchController.text.isNotEmpty
+        ? IconButton(
+            icon: const Icon(Icons.clear, color: Colors.white54),
+            onPressed: () {
+              searchController.clear();
+              setState(() {});
+              _performSearch();
+            },
+          )
+        : null,
+    filled: true,
+    fillColor: const Color(0xFF21120E),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: BorderSide.none,
+    ),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: BorderSide.none,
+    ),
+  ),
+),
             const SizedBox(height: 14),
             SizedBox(
               height: 38,
@@ -1381,7 +1857,9 @@ class _SearchScreenState extends State<SearchScreen> {
                     backgroundColor: const Color(0xFF21120E),
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : Colors.white70,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                       fontSize: 12,
                     ),
                     onSelected: (selected) {
@@ -1400,7 +1878,9 @@ class _SearchScreenState extends State<SearchScreen> {
             Expanded(
               child: isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: Color(0xFFEA7424)),
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFEA7424),
+                      ),
                     )
                   : errorMessage != null
                       ? Center(
@@ -1410,126 +1890,166 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                         )
                       : searchResults.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.search_off,
-                                    size: 64,
-                                    color: Colors.white.withOpacity(0.2),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'No se encontraron cartas en la base de datos',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.5),
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
+    ? Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                searchController.text.trim().isEmpty
+                    ? Icons.auto_awesome
+                    : Icons.search_off,
+                size: 76,
+                color: const Color(0xFFEA7424),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                searchController.text.trim().isEmpty
+                    ? '¡Tu próxima carta te espera!'
+                    : 'No encontramos esa carta',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFFFFB13B),
+                  fontSize: 21,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                searchController.text.trim().isEmpty
+                    ? 'Explora el universo Pokémon y descubre nuevas cartas para tu colección.'
+                    : 'Intenta con otro nombre o explora las categorías.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 14,
+                  height: 1.6,
+                ),
+              ),
+            ],
+          ),
+        ),
+      )
                           : GridView.builder(
                               itemCount: searchResults.length,
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
                                 crossAxisSpacing: 14,
                                 mainAxisSpacing: 14,
                                 childAspectRatio: 0.70,
                               ),
                               itemBuilder: (context, index) {
-  final card = searchResults[index];
-  final colors = _getElementColors(card.category);
+                                final card = searchResults[index];
+                                final colors =
+                                    _getElementColors(card.category);
 
-  return Container(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: colors,
-      ),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(
-        color: Colors.white.withOpacity(0.12),
-      ),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 3,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              card.rarity,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFFFFD17A),
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: Center(
-              child: card.imageUrl.isNotEmpty
-                  ? Image.network(
-                      card.imageUrl,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) {
-                        return const Icon(
-                          Icons.image_not_supported,
-                          color: Colors.white54,
-                          size: 45,
-                        );
-                      },
-                    )
-                  : const Icon(
-                      Icons.image_not_supported,
-                      color: Colors.white54,
-                      size: 45,
-                    ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            card.category.toUpperCase(),
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            card.name,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              height: 1.1,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-},
-                            
-                                
+                                return GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            CardDetailScreen(card: card),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: colors,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.12),
+                                      ),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  Colors.black.withOpacity(0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              card.rarity,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: Color(0xFFFFD17A),
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Expanded(
+                                            child: Center(
+                                              child: card.imageUrl.isNotEmpty
+                                                  ? Image.network(
+                                                      card.imageUrl,
+                                                      fit: BoxFit.contain,
+                                                      errorBuilder:
+                                                          (_, __, ___) {
+                                                        return const Icon(
+                                                          Icons
+                                                              .image_not_supported,
+                                                          color: Colors.white54,
+                                                          size: 45,
+                                                        );
+                                                      },
+                                                    )
+                                                  : const Icon(
+                                                      Icons.image_not_supported,
+                                                      color: Colors.white54,
+                                                      size: 45,
+                                                    ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            card.category.toUpperCase(),
+                                            style: TextStyle(
+                                              color: Colors.white
+                                                  .withOpacity(0.7),
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 1,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            card.name,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 13,
+                                              height: 1.1,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
             ),
           ],
         ),
@@ -1537,6 +2057,8 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 }
+
+
 
 // ====================================================================
 // 7. PANTALLA DE IA INDEPENDIENTE (IA BOT)
@@ -1624,7 +2146,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AppHeader(),
+            AppHeader(),
             const SizedBox(height: 28),
             const Row(
               children: [
@@ -2043,7 +2565,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 30),
         children: [
-          const AppHeader(),
+          AppHeader(),
           const SizedBox(height: 32),
           Center(
             child: Container(
@@ -2450,62 +2972,192 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 // ====================================================================
 // 9. ENCABEZADO COMPARTIDO
 // ====================================================================
-class AppHeader extends StatelessWidget {
-  const AppHeader({super.key});
+
+class CardDetailScreen extends StatefulWidget {
+  final TcgdexCard card;
+
+  const CardDetailScreen({
+    super.key,
+    required this.card,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        Icon(
-          Icons.auto_awesome,
-          color: Color(0xFFFFB13B),
-        ),
-        SizedBox(width: 10),
-        Text(
-          'SNAP CARD',
-          style: TextStyle(
-            color: Color(0xFFFFFAF3),
-            fontSize: 17,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2,
-          ),
-        ),
-      ],
-    );
-  }
+  State<CardDetailScreen> createState() => _CardDetailScreenState();
 }
 
-class FeatureText extends StatelessWidget {
-  final String text;
-  const FeatureText(this.text, {super.key});
+class _CardDetailScreenState extends State<CardDetailScreen> {
+  bool isSaving = false;
+
+  Future<void> _addToWishlist() async {
+    if (isSaving) return;
+
+    setState(() {
+      isSaving = true;
+    });
+
+    try {
+      final message =
+          await ApiService.addTcgdexCardToWishlist(widget.card.id);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudo guardar la carta: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: Color.fromRGBO(255, 250, 243, 0.62),
-        fontSize: 10,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1,
+    final card = widget.card;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF160D0A),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF21120E),
+        foregroundColor: Colors.white,
+        title: const Text('Detalles de la carta'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: card.imageUrl.isNotEmpty
+                  ? Image.network(
+                      card.imageUrl,
+                      height: 330,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.image_not_supported,
+                        color: Colors.white54,
+                        size: 80,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.image_not_supported,
+                      color: Colors.white54,
+                      size: 80,
+                    ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              card.name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 27,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _detailRow('Rareza', card.rarity),
+            _detailRow('Categoría', card.category),
+            _detailRow('HP', card.hp?.toString() ?? 'No disponible'),
+            _detailRow(
+              'Tipo',
+              card.types.isEmpty ? 'No disponible' : card.types.join(', '),
+            ),
+            _detailRow('Expansión', card.setName),
+            _detailRow('Número de carta', card.localId),
+            _detailRow('Etapa', card.stage),
+            _detailRow('Ilustrador', card.illustrator),
+            _detailRow('ID TCGdex', card.id),
+
+            const SizedBox(height: 28),
+
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton.icon(
+                onPressed: isSaving ? null : _addToWishlist,
+                icon: isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.favorite_border),
+                label: Text(
+                  isSaving ? 'Guardando...' : 'Desear Carta',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF6D00),
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.orange.shade900,
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class FeatureDot extends StatelessWidget {
-  const FeatureDot({super.key});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _detailRow(String label, String value) {
     return Container(
-      width: 3,
-      height: 3,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: const BoxDecoration(
-        color: Color(0xFFF69829),
-        shape: BoxShape.circle,
+        border: Border(
+          bottom: BorderSide(color: Colors.white12),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white54,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value.isEmpty ? 'No disponible' : value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-}
+

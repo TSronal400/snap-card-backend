@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,9 +30,13 @@ class ApiService {
   static Future<UserModel?> getSavedUser() async {
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString(_userDataKey);
+
     if (userJson == null) return null;
+
     try {
-      return UserModel.fromJson(jsonDecode(userJson) as Map<String, dynamic>);
+      return UserModel.fromJson(
+        jsonDecode(userJson) as Map<String, dynamic>,
+      );
     } catch (_) {
       return null;
     }
@@ -40,6 +45,7 @@ class ApiService {
   /// Cerrar sesión y eliminar token guardado
   static Future<void> logout() async {
     final token = await getToken();
+
     if (token != null) {
       try {
         await http.post(
@@ -51,6 +57,7 @@ class ApiService {
         );
       } catch (_) {}
     }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userDataKey);
@@ -75,13 +82,17 @@ class ApiService {
     final data = jsonDecode(response.body);
 
     if (response.statusCode == 201) {
-      final auth = AuthResponse.fromJson(data as Map<String, dynamic>);
+      final auth = AuthResponse.fromJson(
+        data as Map<String, dynamic>,
+      );
+
       await _saveSession(auth);
       return auth;
     } else {
       final detail = data is Map && data.containsKey('detail')
           ? data['detail'].toString()
           : 'Error al registrar la cuenta';
+
       throw ApiException(detail);
     }
   }
@@ -103,13 +114,17 @@ class ApiService {
     final data = jsonDecode(response.body);
 
     if (response.statusCode == 200) {
-      final auth = AuthResponse.fromJson(data as Map<String, dynamic>);
+      final auth = AuthResponse.fromJson(
+        data as Map<String, dynamic>,
+      );
+
       await _saveSession(auth);
       return auth;
     } else {
       final detail = data is Map && data.containsKey('detail')
           ? data['detail'].toString()
           : 'Correo o contraseña incorrectos';
+
       throw ApiException(detail);
     }
   }
@@ -117,6 +132,7 @@ class ApiService {
   /// Obtener perfil del usuario actual (GET /me)
   static Future<UserModel> getProfile() async {
     final token = await getToken();
+
     if (token == null) {
       throw ApiException('No hay sesión activa');
     }
@@ -132,8 +148,13 @@ class ApiService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final user = UserModel.fromJson(data);
+
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_userDataKey, jsonEncode(user.toJson()));
+      await prefs.setString(
+        _userDataKey,
+        jsonEncode(user.toJson()),
+      );
+
       return user;
     } else {
       throw ApiException('Sesión expirada o no autorizada');
@@ -141,8 +162,12 @@ class ApiService {
   }
 
   /// Actualizar perfil del usuario (PUT /me)
-  static Future<UserModel> updateProfile({required String name, required String email}) async {
+  static Future<UserModel> updateProfile({
+    required String name,
+    required String email,
+  }) async {
     final token = await getToken();
+
     if (token == null) {
       throw ApiException('No hay sesión activa');
     }
@@ -162,23 +187,40 @@ class ApiService {
     final data = jsonDecode(response.body);
 
     if (response.statusCode == 200) {
-      final user = UserModel.fromJson(data as Map<String, dynamic>);
+      final user = UserModel.fromJson(
+        data as Map<String, dynamic>,
+      );
+
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_userDataKey, jsonEncode(user.toJson()));
+      await prefs.setString(
+        _userDataKey,
+        jsonEncode(user.toJson()),
+      );
+
       return user;
     } else {
       final detail = data is Map && data.containsKey('detail')
           ? data['detail'].toString()
           : 'Error al actualizar el perfil';
+
       throw ApiException(detail);
     }
   }
 
   /// Buscar cartas por nombre o categoría (GET /cards/search)
-  static Future<List<CardItem>> searchCards({String query = '', String? category}) async {
+  static Future<List<CardItem>> searchCards({
+    String query = '',
+    String? category,
+  }) async {
     final queryParams = <String, String>{};
-    if (query.isNotEmpty) queryParams['q'] = query;
-    if (category != null && category.isNotEmpty && category != 'Todas') {
+
+    if (query.isNotEmpty) {
+      queryParams['q'] = query;
+    }
+
+    if (category != null &&
+        category.isNotEmpty &&
+        category != 'Todas') {
       queryParams['category'] = category;
     }
 
@@ -186,19 +228,33 @@ class ApiService {
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
 
-    final response = await http.get(uri, headers: {'Content-Type': 'application/json'});
+    final response = await http.get(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+    );
 
     if (response.statusCode == 200) {
       final List list = jsonDecode(response.body) as List;
-      return list.map((item) => CardItem.fromJson(item as Map<String, dynamic>)).toList();
+
+      return list
+          .map((item) => CardItem.fromJson(
+                item as Map<String, dynamic>,
+              ))
+          .toList();
     } else {
-      throw ApiException('Error al buscar cartas en la base de datos');
+      throw ApiException(
+        'Error al buscar cartas en la base de datos',
+      );
     }
   }
-  
+
   /// Buscar cartas directamente en TCGdex
-  static Future<List<TcgdexCard>> searchTcgdexCards(String query) async {
-    final uri = Uri.parse('$baseUrl/cards/tcgdex/search').replace(
+  static Future<List<TcgdexCard>> searchTcgdexCards(
+    String query,
+  ) async {
+    final uri = Uri.parse(
+      '$baseUrl/cards/tcgdex/search',
+    ).replace(
       queryParameters: {'q': query.trim()},
     );
 
@@ -219,6 +275,7 @@ class ApiService {
       throw ApiException('Error al buscar cartas en TCGdex');
     }
   }
+
   /// Obtener categorías únicas de cartas
   static Future<List<String>> getCategories() async {
     try {
@@ -229,9 +286,11 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final List list = jsonDecode(response.body) as List;
+
         return list.map((item) => item.toString()).toList();
       }
     } catch (_) {}
+
     return ['Legendaria', 'Épica', 'Rara', 'Especial'];
   }
 
@@ -245,7 +304,9 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      return data['reply'] as String? ?? 'No pude procesar tu consulta';
+
+      return data['reply'] as String? ??
+          'No pude procesar tu consulta';
     } else {
       throw ApiException('Error al consultar al asistente IA');
     }
@@ -254,7 +315,10 @@ class ApiService {
   /// Enviar ticket de soporte (POST /support/ticket)
   static Future<void> submitSupportTicket(String message) async {
     final token = await getToken();
-    if (token == null) throw ApiException('No hay sesión activa');
+
+    if (token == null) {
+      throw ApiException('No hay sesión activa');
+    }
 
     final response = await http.post(
       Uri.parse('$baseUrl/support/ticket'),
@@ -273,6 +337,7 @@ class ApiService {
   /// Obtener colección de cartas del usuario (GET /collection)
   static Future<List<CardItem>> getUserCollection() async {
     final token = await getToken();
+
     if (token == null) return [];
 
     final response = await http.get(
@@ -285,7 +350,12 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final List list = jsonDecode(response.body) as List;
-      return list.map((item) => CardItem.fromJson(item as Map<String, dynamic>)).toList();
+
+      return list
+          .map((item) => CardItem.fromJson(
+                item as Map<String, dynamic>,
+              ))
+          .toList();
     } else {
       return [];
     }
@@ -294,7 +364,10 @@ class ApiService {
   /// Añadir carta a la colección del usuario (POST /collection/add)
   static Future<String> addCardToCollection(int cardId) async {
     final token = await getToken();
-    if (token == null) throw ApiException('No hay sesión activa');
+
+    if (token == null) {
+      throw ApiException('No hay sesión activa');
+    }
 
     final response = await http.post(
       Uri.parse('$baseUrl/collection/add'),
@@ -306,17 +379,28 @@ class ApiService {
     );
 
     final data = jsonDecode(response.body);
-    if (response.statusCode == 201 || response.statusCode == 200) {
-      return data['message']?.toString() ?? 'Carta añadida con éxito';
+
+    if (response.statusCode == 201 ||
+        response.statusCode == 200) {
+      return data['message']?.toString() ??
+          'Carta añadida con éxito';
     } else {
-      throw ApiException(data['detail']?.toString() ?? 'Error al añadir carta');
+      throw ApiException(
+        data['detail']?.toString() ??
+            'Error al añadir carta',
+      );
     }
   }
 
-  /// Eliminar carta de la colección del usuario (DELETE /collection/{cardId})
-  static Future<String> removeCardFromCollection(int cardId) async {
+  /// Eliminar carta de la colección del usuario
+  static Future<String> removeCardFromCollection(
+    int cardId,
+  ) async {
     final token = await getToken();
-    if (token == null) throw ApiException('No hay sesión activa');
+
+    if (token == null) {
+      throw ApiException('No hay sesión activa');
+    }
 
     final response = await http.delete(
       Uri.parse('$baseUrl/collection/$cardId'),
@@ -327,11 +411,238 @@ class ApiService {
     );
 
     final data = jsonDecode(response.body);
+
     if (response.statusCode == 200) {
-      return data['message']?.toString() ?? 'Carta eliminada con éxito';
+      return data['message']?.toString() ??
+          'Carta eliminada con éxito';
     } else {
-      throw ApiException(data['detail']?.toString() ?? 'Error al eliminar carta');
+      throw ApiException(
+        data['detail']?.toString() ??
+            'Error al eliminar carta',
+      );
     }
+  }
+
+  /// Obtener colección personal de cartas TCGdex
+  static Future<List<TcgdexCard>> getTcgdexCollection() async {
+    final token = await getToken();
+
+    if (token == null) {
+      throw ApiException('No hay sesión activa');
+    }
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/collection/tcgdex'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List list = jsonDecode(response.body) as List;
+
+      return list
+          .map((item) => TcgdexCard.fromJson(
+                item as Map<String, dynamic>,
+              ))
+          .toList();
+    }
+
+    throw ApiException(
+      'Error al obtener tu colección TCGdex',
+    );
+  }
+
+  /// Añadir carta TCGdex a la colección
+  /// Se conserva para no romper conexiones existentes.
+  static Future<String> addTcgdexCardToCollection(
+    String cardId,
+  ) async {
+    final token = await getToken();
+
+    if (token == null) {
+      throw ApiException('No hay sesión activa');
+    }
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/collection/tcgdex/add'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'card_id': cardId}),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200 ||
+        response.statusCode == 201) {
+      return data['message']?.toString() ??
+          'Carta añadida con éxito';
+    }
+
+    throw ApiException(
+      data['detail']?.toString() ??
+          'Error al añadir carta',
+    );
+  }
+
+  /// Eliminar carta TCGdex de la colección
+  static Future<String> removeTcgdexCardFromCollection(
+    String cardId,
+  ) async {
+    final token = await getToken();
+
+    if (token == null) {
+      throw ApiException('No hay sesión activa');
+    }
+
+    final response = await http.delete(
+      Uri.parse('$baseUrl/collection/tcgdex/$cardId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return data['message']?.toString() ??
+          'Carta eliminada con éxito';
+    }
+
+    throw ApiException(
+      data['detail']?.toString() ??
+          'Error al eliminar carta',
+    );
+  }
+
+  // ==========================================
+  // CARTAS DESEADAS (TCGdex)
+  // ==========================================
+
+  /// Obtener cartas deseadas del usuario
+  /// GET /collection/wishlist
+  static Future<List<TcgdexCard>> getTcgdexWishlist() async {
+    final token = await getToken();
+
+    if (token == null) {
+      throw ApiException('No hay sesión activa');
+    }
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/collection/wishlist'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      final List list = data as List;
+
+      return list
+          .map((item) => TcgdexCard.fromJson(
+                item as Map<String, dynamic>,
+              ))
+          .toList();
+    }
+
+    throw ApiException(
+      data is Map
+          ? data['detail']?.toString() ??
+              'Error al obtener cartas deseadas'
+          : 'Error al obtener cartas deseadas',
+    );
+  }
+
+  /// Añadir carta TCGdex a Cartas deseadas
+  /// POST /collection/wishlist/add
+  
+static Future<String> addTcgdexCardToWishlist(
+  String cardId,
+) async {
+  final token = await getToken();
+
+  if (token == null) {
+    throw ApiException('No hay sesión activa');
+  }
+
+  final response = await http.post(
+    Uri.parse('$baseUrl/collection/wishlist/add'),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({'card_id': cardId}),
+  );
+
+  dynamic data;
+
+  try {
+    data = jsonDecode(response.body);
+  } catch (_) {
+    data = null;
+  }
+
+  if (response.statusCode == 200 ||
+      response.statusCode == 201) {
+    return data is Map
+        ? data['message']?.toString() ??
+            '¡Carta añadida a Cartas deseadas!'
+        : '¡Carta añadida a Cartas deseadas!';
+  }
+
+  String errorMessage = 'Error al guardar carta deseada';
+
+  if (data is Map) {
+    errorMessage =
+        data['detail']?.toString() ?? errorMessage;
+  } else if (response.body.isNotEmpty) {
+    errorMessage = response.body;
+  }
+
+  throw ApiException(
+    'Error ${response.statusCode}: $errorMessage',
+  );
+}
+
+  /// Eliminar carta de Cartas deseadas
+  /// DELETE /collection/wishlist/{cardId}
+  static Future<String> removeTcgdexCardFromWishlist(
+    String cardId,
+  ) async {
+    final token = await getToken();
+
+    if (token == null) {
+      throw ApiException('No hay sesión activa');
+    }
+
+    final response = await http.delete(
+      Uri.parse('$baseUrl/collection/wishlist/$cardId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return data['message']?.toString() ??
+          'Carta eliminada de Cartas deseadas';
+    }
+
+    throw ApiException(
+      data is Map
+          ? data['detail']?.toString() ??
+              'Error al eliminar carta deseada'
+          : 'Error al eliminar carta deseada',
+    );
   }
 
   /// Obtener información de la app (GET /app/about)
@@ -346,10 +657,12 @@ class ApiService {
         return jsonDecode(response.body) as Map<String, dynamic>;
       }
     } catch (_) {}
+
     return {
       'app_name': 'SNAP CARD',
       'version': '1.0.0+1',
-      'description': 'Aplicación profesional para coleccionistas de cartas TCG.',
+      'description':
+          'Aplicación profesional para coleccionistas de cartas TCG.',
       'developer': 'Equipo Snap Card & Ronal',
     };
   }
@@ -357,6 +670,7 @@ class ApiService {
 
 class ApiException implements Exception {
   final String message;
+
   ApiException(this.message);
 
   @override

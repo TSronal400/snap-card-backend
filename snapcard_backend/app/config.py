@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     )
     jwt_expire_minutes: int = 60
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    gemini_api_key: str = Field(
+    default="",
+    validation_alias="GEMINI_API_KEY",
+)
 
     def model_post_init(self, __context):
         if self.secret_key:

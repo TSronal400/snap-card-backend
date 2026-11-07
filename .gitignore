@@ -44,3 +44,4 @@ __pycache__/
 
 # Widget Preview related
 .widget_preview/
+supabase-ca.crt
