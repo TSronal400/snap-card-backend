@@ -45,3 +45,4 @@ __pycache__/
 # Widget Preview related
 .widget_preview/
 supabase-ca.crt
+!snapcard_backend/supabase-ca.crt
