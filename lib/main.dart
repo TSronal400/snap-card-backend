@@ -652,7 +652,7 @@ class _SnapCardHomeState extends State<SnapCardHome> {
 // ====================================================================
 // 4. PANTALLA DE COLECCIÓN CON VALOR ACUMULADO
 // ====================================================================
- 
+
 class CollectionScreen extends StatefulWidget {
   const CollectionScreen({super.key});
 
@@ -710,6 +710,124 @@ class _CollectionScreenState extends State<CollectionScreen> {
   double get totalPrice => collection
       .whereType<CardItem>()
       .fold<double>(0, (sum, card) => sum + card.price);
+
+void _showCardDetails(dynamic card) {
+  final bool isTcgdex = card is TcgdexCard;
+
+  final String imageUrl = card.imageUrl;
+  final String name = card.name;
+  final String category = card.category;
+
+  final List<MapEntry<String, String>> details = isTcgdex
+      ? [
+          MapEntry('Rareza', card.rarity),
+          MapEntry('HP', card.hp?.toString() ?? 'No disponible'),
+          MapEntry(
+            'Tipos',
+            card.types.isEmpty ? 'No disponible' : card.types.join(', '),
+          ),
+          MapEntry('Etapa', card.stage),
+          MapEntry('Expansión', card.setName),
+          MapEntry('Número', card.localId),
+          MapEntry('Ilustrador', card.illustrator),
+        ]
+      : [
+          MapEntry('Tipo elemental', card.elementType),
+          MapEntry('Precio', '\$${card.price.toStringAsFixed(2)} USD'),
+          MapEntry('Descripción', card.description),
+        ];
+
+  showDialog(
+    context: context,
+    builder: (dialogContext) {
+      return Dialog(
+        backgroundColor: const Color(0xFF21120E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  icon: const Icon(Icons.close, color: Colors.white70),
+                ),
+              ),
+              if (imageUrl.isNotEmpty)
+  InteractiveViewer(
+    minScale: 1,
+    maxScale: 5,
+    child: Image.network(
+      imageUrl,
+      height: 260,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => const Icon(
+        Icons.style,
+        size: 100,
+        color: Colors.white54,
+      ),
+    ),
+  )
+else
+  const Icon(Icons.style, size: 100, color: Colors.white54),
+              const SizedBox(height: 16),
+              Text(
+                name,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                category,
+                style: const TextStyle(
+                  color: Color(0xFFFFB03B),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 18),
+              ...details.where((item) => item.value.trim().isNotEmpty).map(
+                (item) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          item.key,
+                          style: const TextStyle(color: Colors.white60),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          item.value,
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 
   void _confirmDeleteCard(dynamic card) {
     showDialog(
@@ -880,7 +998,9 @@ class _CollectionScreenState extends State<CollectionScreen> {
   Widget _buildWishlistCard(TcgdexCard card) {
     final colors = _getElementColors('normal');
 
-    return Container(
+    return GestureDetector(
+      onTap: () => _showCardDetails(card),
+      child: Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -976,6 +1096,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
           ],
         ),
       ),
+       ),
     );
   }
 
@@ -1154,7 +1275,9 @@ class _CollectionScreenState extends State<CollectionScreen> {
 
                               final String imageUrl = card.imageUrl;
 
-                              return Container(
+                              return GestureDetector(
+                                onTap: () => _showCardDetails(card),
+                                child: Container(
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     begin: Alignment.topLeft,
@@ -1264,6 +1387,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                                     ],
                                   ),
                                 ),
+                                ),
                               );
                             },
                           ),
@@ -1360,83 +1484,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   bool isScanning = false;
   final ImagePicker _picker = ImagePicker();
 
-  Future<void> simulateScan(BuildContext context) async {
-    setState(() => isScanning = true);
 
-    try {
-      final allCards = await ApiService.searchCards(query: '');
-      if (allCards.isEmpty) {
-        throw Exception('No hay cartas disponibles en el sistema');
-      }
-
-      allCards.shuffle();
-      final scannedCard = allCards.first;
-
-      final message = await ApiService.addCardToCollection(scannedCard.id);
-
-      if (!mounted) return;
-      setState(() => isScanning = false);
-
-      showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            backgroundColor: const Color(0xFF21120E),
-            title: const Row(
-              children: [
-                Icon(Icons.auto_awesome, color: Color(0xFFFFB03B)),
-                SizedBox(width: 8),
-                Text('¡Carta Descubierta!', style: TextStyle(color: Color(0xFFFFFAF3))),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  scannedCard.name,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Categoría: ${scannedCard.category}',
-                  style: const TextStyle(color: Color(0xFFFFC564), fontSize: 13),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Valor de Mercado: \$${scannedCard.price.toStringAsFixed(2)} USD',
-                  style: const TextStyle(color: Colors.greenAccent, fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  message,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-              ],
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () => Navigator.pop(context),
-                style: FilledButton.styleFrom(backgroundColor: const Color(0xFFEA7424)),
-                child: const Text('Aceptar y Guardar'),
-              ),
-            ],
-          );
-        },
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => isScanning = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-    }
-  }
-
-  
   Future<void> realScan(BuildContext context) async {
     try {
       // Abrir la cámara y tomar la fotografía.
@@ -1568,24 +1616,64 @@ class _ScannerScreenState extends State<ScannerScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (imageUrl.isNotEmpty)
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                imageUrl,
-                                width: 85,
-                                height: 115,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) =>
-                                    const SizedBox(
-                                  width: 85,
-                                  height: 115,
-                                  child: Icon(
-                                    Icons.image_not_supported,
-                                    color: Colors.white54,
-                                  ),
-                                ),
-                              ),
-                            ),
+  GestureDetector(
+    onTap: () {
+      showDialog(
+        context: dialogContext,
+        builder: (zoomContext) {
+          return Dialog(
+            backgroundColor: const Color(0xFF21120E),
+            child: Stack(
+              alignment: Alignment.topRight,
+              children: [
+                InteractiveViewer(
+                  minScale: 1,
+                  maxScale: 5,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) =>
+                          const Icon(
+                        Icons.image_not_supported,
+                        color: Colors.white54,
+                        size: 80,
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(zoomContext),
+                  icon: const Icon(
+                    Icons.close,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.network(
+        imageUrl,
+        width: 85,
+        height: 115,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const SizedBox(
+          width: 85,
+          height: 115,
+          child: Icon(
+            Icons.image_not_supported,
+            color: Colors.white54,
+          ),
+        ),
+      ),
+    ),
+  ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -1730,137 +1818,159 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-        child: Column(
-          children: [
-            AppHeader(),
-            const SizedBox(height: 28),
-            const Text(
-              'Escanea una carta',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFFFFFAF3),
-                fontSize: 30,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -1,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Apunta a tu carta física para registrar su precio',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color.fromRGBO(255, 250, 243, 0.6),
-                fontSize: 14,
-              ),
-            ),
-            const Spacer(),
-            Container(
-              width: 270,
-              height: 370,
-              decoration: BoxDecoration(
-                color: const Color(0xFF21120E),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(
-                  color: const Color(0xFFFFA33B),
-                  width: 3,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+          child: Column(
+            children: [
+              AppHeader(),
+              const SizedBox(height: 28),
+              const Text(
+                'Escanea una carta',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFFFFFAF3),
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFF8D24).withOpacity(0.3),
-                    blurRadius: 30,
-                  ),
-                ],
               ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Icon(
-                    Icons.style,
-                    size: 100,
-                    color: Colors.white.withOpacity(0.1),
+              const SizedBox(height: 8),
+              const Text(
+                'Apunta a tu carta física para registrar su precio',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color.fromRGBO(255, 250, 243, 0.6),
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              if (isScanning) ...[
+                const Column(
+                  children: [
+                    SizedBox(
+                      width: 38,
+                      height: 38,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: Color(0xFFFFA33B),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      '⚡ ¡Estamos descubriendo tu Pokémon!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFFFFB13B),
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'La IA está analizando tu carta...',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color.fromRGBO(255, 250, 243, 0.65),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              Container(
+                width: 270,
+                height: 370,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF21120E),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: const Color(0xFFFFA33B),
+                    width: 3,
                   ),
-                  Container(
-                    height: 2,
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.transparent,
-                          Color(0xFFFFB13B),
-                          Colors.transparent,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFF8D24).withOpacity(0.3),
+                      blurRadius: 30,
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      Icons.style,
+                      size: 100,
+                      color: Colors.white.withOpacity(0.1),
+                    ),
+                    Container(
+                      height: 2,
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.transparent,
+                            Color(0xFFFFB13B),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Positioned(
+                      bottom: 24,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.lightbulb_outline,
+                            color: Color(0xFFFFBD64),
+                            size: 17,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Busca una buena iluminación',
+                            style: TextStyle(
+                              color: Color(0xFFFFBD64),
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                     ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton.icon(
+                  onPressed: isScanning ? null : () => realScan(context),
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text(
+                    'Escanear (Cámara)',
+                    style: TextStyle(fontWeight: FontWeight.w800),
                   ),
-                  const Positioned(
-                    bottom: 24,
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.lightbulb_outline,
-                          color: Color(0xFFFFBD64),
-                          size: 17,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          'Busca una buena iluminación',
-                          style: TextStyle(
-                            color: Color(0xFFFFBD64),
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFEA7424),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                ],
-              ),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: FilledButton.icon(
-                onPressed: isScanning ? null : () => realScan(context),
-                icon: const Icon(Icons.camera_alt),
-                label: const Text(
-                  'Escanear (Cámara)',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFEA7424),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton.icon(
-                onPressed: isScanning ? null : () => simulateScan(context),
-                icon: const Icon(Icons.center_focus_strong),
-                label: const Text(
-                  'Simular escaneo',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFFEA7424)),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-            ),
-          ],
+
+            ],
+          ),
         ),
       ),
     );
@@ -3257,23 +3367,27 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: card.imageUrl.isNotEmpty
-                  ? Image.network(
-                      card.imageUrl,
-                      height: 330,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.image_not_supported,
-                        color: Colors.white54,
-                        size: 80,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.image_not_supported,
-                      color: Colors.white54,
-                      size: 80,
-                    ),
+  child: card.imageUrl.isNotEmpty
+      ? InteractiveViewer(
+          minScale: 1,
+          maxScale: 5,
+          child: Image.network(
+            card.imageUrl,
+            height: 330,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const Icon(
+              Icons.image_not_supported,
+              color: Colors.white54,
+              size: 80,
             ),
+          ),
+        )
+      : const Icon(
+          Icons.image_not_supported,
+          color: Colors.white54,
+          size: 80,
+        ),
+),
             const SizedBox(height: 24),
             Text(
               card.name,
