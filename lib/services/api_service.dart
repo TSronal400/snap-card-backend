@@ -1,6 +1,6 @@
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../models/card_item.dart';
@@ -470,7 +470,62 @@ class ApiService {
     );
   }
 
-  /// Añadir carta TCGdex a la colección
+  /// Enviar una fotografía a Gemini para reconocer una carta Pokémon.
+  static Future<Map<String, dynamic>> scanPokemonCard(
+    String imagePath,
+  ) async {
+    final token = await getToken();
+
+    final extension = imagePath.toLowerCase();
+
+    final MediaType contentType;
+
+    if (extension.endsWith('.png')) {
+      contentType = MediaType('image', 'png');
+    } else if (extension.endsWith('.webp')) {
+      contentType = MediaType('image', 'webp');
+    } else {
+      contentType = MediaType('image', 'jpeg');
+    }
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/ai/scan'),
+    );
+
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'image',
+        imagePath,
+        contentType: contentType,
+      ),
+    );
+
+    final streamedResponse = await request.send();
+
+    final response = await http.Response.fromStream(
+      streamedResponse,
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return Map<String, dynamic>.from(data);
+    }
+
+    throw ApiException(
+      data is Map
+          ? data['detail']?.toString() ??
+              'Error al reconocer la carta'
+          : 'Error al reconocer la carta',
+    );
+  }
+
+  /// Añadir carta TCGdex a la colección.
   /// Se conserva para no romper conexiones existentes.
   static Future<String> addTcgdexCardToCollection(
     String cardId,
@@ -578,54 +633,53 @@ class ApiService {
 
   /// Añadir carta TCGdex a Cartas deseadas
   /// POST /collection/wishlist/add
-  
-static Future<String> addTcgdexCardToWishlist(
-  String cardId,
-) async {
-  final token = await getToken();
+  static Future<String> addTcgdexCardToWishlist(
+    String cardId,
+  ) async {
+    final token = await getToken();
 
-  if (token == null) {
-    throw ApiException('No hay sesión activa');
+    if (token == null) {
+      throw ApiException('No hay sesión activa');
+    }
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/collection/wishlist/add'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'card_id': cardId}),
+    );
+
+    dynamic data;
+
+    try {
+      data = jsonDecode(response.body);
+    } catch (_) {
+      data = null;
+    }
+
+    if (response.statusCode == 200 ||
+        response.statusCode == 201) {
+      return data is Map
+          ? data['message']?.toString() ??
+              '¡Carta añadida a Cartas deseadas!'
+          : '¡Carta añadida a Cartas deseadas!';
+    }
+
+    String errorMessage = 'Error al guardar carta deseada';
+
+    if (data is Map) {
+      errorMessage =
+          data['detail']?.toString() ?? errorMessage;
+    } else if (response.body.isNotEmpty) {
+      errorMessage = response.body;
+    }
+
+    throw ApiException(
+      'Error ${response.statusCode}: $errorMessage',
+    );
   }
-
-  final response = await http.post(
-    Uri.parse('$baseUrl/collection/wishlist/add'),
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    },
-    body: jsonEncode({'card_id': cardId}),
-  );
-
-  dynamic data;
-
-  try {
-    data = jsonDecode(response.body);
-  } catch (_) {
-    data = null;
-  }
-
-  if (response.statusCode == 200 ||
-      response.statusCode == 201) {
-    return data is Map
-        ? data['message']?.toString() ??
-            '¡Carta añadida a Cartas deseadas!'
-        : '¡Carta añadida a Cartas deseadas!';
-  }
-
-  String errorMessage = 'Error al guardar carta deseada';
-
-  if (data is Map) {
-    errorMessage =
-        data['detail']?.toString() ?? errorMessage;
-  } else if (response.body.isNotEmpty) {
-    errorMessage = response.body;
-  }
-
-  throw ApiException(
-    'Error ${response.statusCode}: $errorMessage',
-  );
-}
 
   /// Eliminar carta de Cartas deseadas
   /// DELETE /collection/wishlist/{cardId}

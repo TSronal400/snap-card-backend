@@ -1436,68 +1436,279 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
+  
   Future<void> realScan(BuildContext context) async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+      // Abrir la cámara y tomar la fotografía.
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 90,
+      );
+
       if (image == null) return;
 
+      if (!mounted) return;
       setState(() => isScanning = true);
 
-      final allCards = await ApiService.searchCards(query: '');
-      if (allCards.isEmpty) {
-        throw Exception('No hay cartas disponibles en el sistema');
-      }
+      // Enviar la fotografía a Gemini.
+      final result = await ApiService.scanPokemonCard(image.path);
 
-      allCards.shuffle();
-      final scannedCard = allCards.first;
+      // Obtener las coincidencias encontradas en TCGdex.
+      final rawCandidates = result['candidates'];
 
-      final message = await ApiService.addCardToCollection(scannedCard.id);
+      final List<Map<String, dynamic>> candidates =
+          rawCandidates is List
+              ? rawCandidates
+                  .whereType<Map>()
+                  .map((item) => Map<String, dynamic>.from(item))
+                  .toList()
+              : [];
 
       if (!mounted) return;
-      setState(() => isScanning = false);
 
-      showDialog(
+      if (candidates.isEmpty) {
+        final identified = result['identified'];
+        final pokemonName = identified is Map
+            ? identified['pokemon_name']?.toString() ?? 'Carta Pokémon'
+            : 'Carta Pokémon';
+
+        await showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            backgroundColor: const Color(0xFF21120E),
+            title: const Text(
+              'No encontramos coincidencias',
+              style: TextStyle(color: Color(0xFFFFFAF3)),
+            ),
+            content: Text(
+              'La IA identificó: $pokemonName.\n\n'
+              'Pero no encontramos una carta coincidente en TCGdex. '
+              'Intenta tomar otra fotografía con buena iluminación.',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFEA7424),
+                ),
+                child: const Text('Aceptar'),
+              ),
+            ],
+          ),
+        );
+
+        return;
+      }
+
+      // Mostrar las cartas encontradas para que el usuario elija.
+      await showDialog(
         context: context,
-        builder: (context) {
+        builder: (dialogContext) {
           return AlertDialog(
             backgroundColor: const Color(0xFF21120E),
             title: const Row(
               children: [
-                Icon(Icons.auto_awesome, color: Color(0xFFFFB03B)),
+                Icon(
+                  Icons.auto_awesome,
+                  color: Color(0xFFFFB03B),
+                ),
                 SizedBox(width: 8),
-                Text('¡Carta Escaneada!', style: TextStyle(color: Color(0xFFFFFAF3))),
+                Expanded(
+                  child: Text(
+                    '¡Carta reconocida!',
+                    style: TextStyle(
+                      color: Color(0xFFFFFAF3),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ],
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  scannedCard.name,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: 400,
+              child: ListView.separated(
+                itemCount: candidates.length,
+                separatorBuilder: (_, __) => const Divider(
+                  color: Colors.white24,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Categoría: ${scannedCard.category}',
-                  style: const TextStyle(color: Color(0xFFFFC564), fontSize: 13),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Valor de Mercado: \$${scannedCard.price.toStringAsFixed(2)} USD',
-                  style: const TextStyle(color: Colors.greenAccent, fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  message,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-              ],
+                itemBuilder: (itemContext, index) {
+                  final candidate = candidates[index];
+
+                  final name =
+                      candidate['name']?.toString() ?? 'Carta Pokémon';
+
+                  final imageBase =
+                      candidate['image']?.toString() ?? '';
+
+                  final imageUrl = imageBase.isEmpty
+                      ? ''
+                      : '$imageBase/high.png';
+
+                  final rarity =
+                      candidate['rarity']?.toString() ?? 'Sin rareza';
+
+                  final setName =
+                      candidate['set_name']?.toString() ?? '';
+
+                  final cardNumber =
+                      candidate['local_id']?.toString() ?? '';
+
+                  final hp = candidate['hp']?.toString();
+
+                  final price = double.tryParse(
+                    candidate['price_dop']?.toString() ?? '',
+                  );
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (imageUrl.isNotEmpty)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                imageUrl,
+                                width: 85,
+                                height: 115,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) =>
+                                    const SizedBox(
+                                  width: 85,
+                                  height: 115,
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    color: Colors.white54,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  'Rareza: $rarity',
+                                  style: const TextStyle(
+                                    color: Color(0xFFFFC564),
+                                  ),
+                                ),
+                                if (setName.isNotEmpty)
+                                  Text(
+                                    'Colección: $setName',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                if (cardNumber.isNotEmpty)
+                                  Text(
+                                    'Número: $cardNumber',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                if (hp != null && hp != 'null')
+                                  Text(
+                                    'HP: $hp',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  price != null
+                                      ? 'Valor: RD\$ ${price.toStringAsFixed(2)}'
+                                      : 'Valor: No disponible',
+                                  style: const TextStyle(
+                                    color: Colors.greenAccent,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () async {
+                            try {
+                              final cardId =
+                                  candidate['id']?.toString() ?? '';
+
+                              if (cardId.isEmpty) {
+                                throw Exception(
+                                  'No se encontró el identificador de la carta',
+                                );
+                              }
+
+                              final message =
+                                  await ApiService
+                                      .addTcgdexCardToCollection(cardId);
+
+                              if (!mounted ||
+                                  !dialogContext.mounted) {
+                                return;
+                              }
+
+                              Navigator.pop(dialogContext);
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(message),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            } catch (e) {
+                              if (!dialogContext.mounted) return;
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(e.toString()),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.add),
+                          label: const Text('Agregar a mi colección'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFFEA7424),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
             actions: [
-              FilledButton(
-                onPressed: () => Navigator.pop(context),
-                style: FilledButton.styleFrom(backgroundColor: const Color(0xFFEA7424)),
-                child: const Text('Aceptar y Guardar'),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text(
+                  'Cerrar',
+                  style: TextStyle(color: Color(0xFFFFC564)),
+                ),
               ),
             ],
           );
@@ -1505,13 +1716,17 @@ class _ScannerScreenState extends State<ScannerScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => isScanning = false);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString()),
           backgroundColor: Colors.redAccent,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() => isScanning = false);
+      }
     }
   }
 
