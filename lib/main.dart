@@ -87,20 +87,113 @@ class FeatureDot extends StatelessWidget {
   }
 }
 
-class SnapCardApp extends StatelessWidget {
+class ThemeParams {
+  final bool isDarkMode;
+  final String themeColor;
+
+  const ThemeParams({
+    this.isDarkMode = true,
+    this.themeColor = 'orange',
+  });
+
+  Color get primaryColor {
+    switch (themeColor) {
+      case 'red':
+        return const Color(0xFFD32F2F);
+      case 'blue':
+        return const Color(0xFF1976D2);
+      case 'green':
+        return const Color(0xFF388E3C);
+      case 'purple':
+        return const Color(0xFF7B1FA2);
+      case 'orange':
+      default:
+        return const Color(0xFFEA7424);
+    }
+  }
+
+  Color get accentColor {
+    switch (themeColor) {
+      case 'red':
+        return const Color(0xFFFF5252);
+      case 'blue':
+        return const Color(0xFF448AFF);
+      case 'green':
+        return const Color(0xFF69F0AE);
+      case 'purple':
+        return const Color(0xFFE040FB);
+      case 'orange':
+      default:
+        return const Color(0xFFFFA33B);
+    }
+  }
+
+  ThemeParams copyWith({
+    bool? isDarkMode,
+    String? themeColor,
+  }) {
+    return ThemeParams(
+      isDarkMode: isDarkMode ?? this.isDarkMode,
+      themeColor: themeColor ?? this.themeColor,
+    );
+  }
+}
+
+final ValueNotifier<ThemeParams> appThemeNotifier = ValueNotifier(const ThemeParams());
+
+class SnapCardApp extends StatefulWidget {
   const SnapCardApp({super.key});
 
   @override
+  State<SnapCardApp> createState() => _SnapCardAppState();
+}
+
+class _SnapCardAppState extends State<SnapCardApp> {
+  @override
+  void initState() {
+    super.initState();
+    _loadThemeSettings();
+  }
+
+  Future<void> _loadThemeSettings() async {
+    final isDark = await ApiService.getDarkMode();
+    final color = await ApiService.getThemeColor();
+    appThemeNotifier.value = ThemeParams(isDarkMode: isDark, themeColor: color);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'SNAP CARD',
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        fontFamily: 'Arial',
-      ),
-      home: const WelcomeScreen(),
+    return ValueListenableBuilder<ThemeParams>(
+      valueListenable: appThemeNotifier,
+      builder: (context, themeParams, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'SNAP CARD',
+          themeMode: themeParams.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          theme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.light,
+            primaryColor: themeParams.primaryColor,
+            colorScheme: ColorScheme.light(
+              primary: themeParams.primaryColor,
+              secondary: themeParams.accentColor,
+            ),
+            fontFamily: 'Arial',
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            primaryColor: themeParams.primaryColor,
+            scaffoldBackgroundColor: const Color(0xFF160B08),
+            colorScheme: ColorScheme.dark(
+              primary: themeParams.primaryColor,
+              secondary: themeParams.accentColor,
+            ),
+            fontFamily: 'Arial',
+          ),
+          home: const WelcomeScreen(),
+        );
+      },
     );
   }
 }
@@ -2843,24 +2936,123 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF21120E),
-          title: const Text('Apariencia', style: TextStyle(color: Color(0xFFFFFAF3))),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.dark_mode, color: Color(0xFFFFB03B)),
-                title: Text('Modo Oscuro (Activo)', style: TextStyle(color: Colors.white)),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final currentTheme = appThemeNotifier.value;
+            bool isDark = currentTheme.isDarkMode;
+            String selectedColor = currentTheme.themeColor;
+
+            final colorOptions = [
+              {'id': 'orange', 'name': 'Naranja Fuego', 'color': const Color(0xFFEA7424)},
+              {'id': 'red', 'name': 'Rojo Calor', 'color': const Color(0xFFD32F2F)},
+              {'id': 'blue', 'name': 'Azul Eléctrico', 'color': const Color(0xFF1976D2)},
+              {'id': 'green', 'name': 'Verde Planta', 'color': const Color(0xFF388E3C)},
+              {'id': 'purple', 'name': 'Morado Psíquico', 'color': const Color(0xFF7B1FA2)},
+            ];
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF21120E),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text(
+                'Apariencia y Modo Calor',
+                style: TextStyle(color: Color(0xFFFFFAF3), fontWeight: FontWeight.bold),
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Aceptar', style: TextStyle(color: Color(0xFFFFB03B))),
-            ),
-          ],
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SwitchListTile(
+                    activeColor: currentTheme.primaryColor,
+                    title: const Text('Modo Oscuro', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                      isDark ? 'Tema oscuro activo' : 'Tema claro activo',
+                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                    value: isDark,
+                    onChanged: (val) {
+                      setDialogState(() {
+                        isDark = val;
+                      });
+                      final updated = currentTheme.copyWith(isDarkMode: val);
+                      appThemeNotifier.value = updated;
+                      ApiService.updateSettings(darkMode: val);
+                    },
+                  ),
+                  const Divider(color: Colors.white12, height: 24),
+                  const Text(
+                    'Modo Calor / Color de Acento',
+                    style: TextStyle(color: Color(0xFFFFC564), fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: colorOptions.map((opt) {
+                      final id = opt['id'] as String;
+                      final name = opt['name'] as String;
+                      final color = opt['color'] as Color;
+                      final isSelected = selectedColor == id;
+
+                      return GestureDetector(
+                        onTap: () {
+                          setDialogState(() {
+                            selectedColor = id;
+                          });
+                          final updated = currentTheme.copyWith(themeColor: id);
+                          appThemeNotifier.value = updated;
+                          ApiService.updateSettings(themeColor: id);
+                        },
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected ? Colors.white : Colors.transparent,
+                                  width: 3,
+                                ),
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: color.withOpacity(0.6),
+                                          blurRadius: 8,
+                                          spreadRadius: 1,
+                                        )
+                                      ]
+                                    : null,
+                                ),
+                              child: isSelected
+                                  ? const Icon(Icons.check, color: Colors.white, size: 20)
+                                  : null,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              name.split(' ')[0],
+                              style: TextStyle(
+                                color: isSelected ? Colors.white : Colors.white54,
+                                fontSize: 10,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Aceptar', style: TextStyle(color: currentTheme.accentColor)),
+                ),
+              ],
+            );
+          },
         );
       },
     );

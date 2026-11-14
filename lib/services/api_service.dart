@@ -754,6 +754,48 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('snapcard_avatar_$userId');
   }
+
+  /// Actualizar configuración de apariencia y notificaciones (PUT /settings)
+  static Future<void> updateSettings({
+    bool? darkMode,
+    String? themeColor,
+    bool? notificationsEnabled,
+    bool? priceAlertsEnabled,
+  }) async {
+    final token = await getToken();
+    if (token != null) {
+      try {
+        final body = <String, dynamic>{};
+        if (darkMode != null) body['dark_mode'] = darkMode;
+        if (themeColor != null) body['theme_color'] = themeColor;
+        if (notificationsEnabled != null) body['notifications_enabled'] = notificationsEnabled;
+        if (priceAlertsEnabled != null) body['price_alerts_enabled'] = priceAlertsEnabled;
+
+        await http.put(
+          Uri.parse('$baseUrl/settings'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(body),
+        );
+      } catch (_) {}
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    if (darkMode != null) await prefs.setBool('snapcard_dark_mode', darkMode);
+    if (themeColor != null) await prefs.setString('snapcard_theme_color', themeColor);
+  }
+
+  static Future<bool> getDarkMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('snapcard_dark_mode') ?? true;
+  }
+
+  static Future<String> getThemeColor() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('snapcard_theme_color') ?? 'orange';
+  }
 }
 
 class ApiException implements Exception {
