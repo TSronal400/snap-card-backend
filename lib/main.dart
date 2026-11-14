@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'models/tcgdex_card.dart';
 import 'package:image_picker/image_picker.dart';
@@ -2650,6 +2651,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   UserModel? currentUser;
+  String? userAvatarBase64;
   bool isLoading = true;
 
   @override
@@ -2660,21 +2662,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final savedUser = await ApiService.getSavedUser();
+    String? avatar;
+    if (savedUser != null) {
+      avatar = await ApiService.getUserAvatar(savedUser.id);
+    }
     if (mounted) {
       setState(() {
         currentUser = savedUser;
+        userAvatarBase64 = avatar;
         isLoading = false;
       });
     }
 
     try {
       final userFromApi = await ApiService.getProfile();
+      final avatarFromApi = await ApiService.getUserAvatar(userFromApi.id);
       if (mounted) {
         setState(() {
           currentUser = userFromApi;
+          userAvatarBase64 = avatarFromApi;
         });
       }
     } catch (_) {}
+  }
+
+  Future<void> _pickAvatarImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: source,
+      maxWidth: 600,
+      maxHeight: 600,
+      imageQuality: 85,
+    );
+
+    if (pickedFile == null || currentUser == null) return;
+
+    final bytes = await pickedFile.readAsBytes();
+    final base64String = base64Encode(bytes);
+
+    await ApiService.saveUserAvatar(currentUser!.id, base64String);
+
+    if (mounted) {
+      setState(() {
+        userAvatarBase64 = base64String;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Foto de perfil actualizada con éxito!'),
+          backgroundColor: Color(0xFFEA7424),
+        ),
+      );
+    }
+  }
+
+  void _showAvatarOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF21120E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Cambiar Foto de Perfil',
+                style: TextStyle(
+                  color: Color(0xFFFFFAF3),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Color(0xFFFFA33B)),
+                title: const Text('Tomar Foto', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAvatarImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Color(0xFFFFA33B)),
+                title: const Text('Elegir de la Galería', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAvatarImage(ImageSource.gallery);
+                },
+              ),
+              if (userAvatarBase64 != null)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  title: const Text('Eliminar foto', style: TextStyle(color: Colors.redAccent)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    if (currentUser != null) {
+                      await ApiService.removeUserAvatar(currentUser!.id);
+                      if (mounted) {
+                        setState(() {
+                          userAvatarBase64 = null;
+                        });
+                      }
+                    }
+                  },
+                ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _handleLogout() async {
@@ -2893,27 +3002,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
           AppHeader(),
           const SizedBox(height: 32),
           Center(
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFFFF9A31),
-                    Color(0xFFC84217),
-                  ],
+            child: Stack(
+              children: [
+                GestureDetector(
+                  onTap: _showAvatarOptions,
+                  child: Container(
+                    width: 104,
+                    height: 104,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFFFF9A31),
+                          Color(0xFFC84217),
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.8),
+                        width: 3,
+                      ),
+                      image: userAvatarBase64 != null
+                          ? DecorationImage(
+                              image: MemoryImage(base64Decode(userAvatarBase64!)),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: userAvatarBase64 == null
+                        ? const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 54,
+                          )
+                        : null,
+                  ),
                 ),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.7),
-                  width: 3,
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: _showAvatarOptions,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEA7424),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black45,
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              child: const Icon(
-                Icons.person,
-                color: Colors.white,
-                size: 54,
-              ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -3138,6 +3287,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController nameController;
   late final TextEditingController emailController;
+  String? userAvatarBase64;
   bool isLoading = false;
 
   @override
@@ -3145,6 +3295,118 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     nameController = TextEditingController(text: widget.user?.name ?? '');
     emailController = TextEditingController(text: widget.user?.email ?? '');
+    _loadAvatar();
+  }
+
+  Future<void> _loadAvatar() async {
+    if (widget.user != null) {
+      final avatar = await ApiService.getUserAvatar(widget.user!.id);
+      if (mounted) {
+        setState(() {
+          userAvatarBase64 = avatar;
+        });
+      }
+    }
+  }
+
+  Future<void> _pickAvatarImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: source,
+      maxWidth: 600,
+      maxHeight: 600,
+      imageQuality: 85,
+    );
+
+    if (pickedFile == null || widget.user == null) return;
+
+    final bytes = await pickedFile.readAsBytes();
+    final base64String = base64Encode(bytes);
+
+    await ApiService.saveUserAvatar(widget.user!.id, base64String);
+
+    if (mounted) {
+      setState(() {
+        userAvatarBase64 = base64String;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Foto de perfil actualizada!'),
+          backgroundColor: Color(0xFFEA7424),
+        ),
+      );
+    }
+  }
+
+  void _showAvatarOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF21120E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Cambiar Foto de Perfil',
+                style: TextStyle(
+                  color: Color(0xFFFFFAF3),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Color(0xFFFFA33B)),
+                title: const Text('Tomar Foto', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAvatarImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Color(0xFFFFA33B)),
+                title: const Text('Elegir de la Galería', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAvatarImage(ImageSource.gallery);
+                },
+              ),
+              if (userAvatarBase64 != null)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  title: const Text('Eliminar foto', style: TextStyle(color: Colors.redAccent)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    if (widget.user != null) {
+                      await ApiService.removeUserAvatar(widget.user!.id);
+                      if (mounted) {
+                        setState(() {
+                          userAvatarBase64 = null;
+                        });
+                      }
+                    }
+                  },
+                ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -3210,11 +3472,76 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         iconTheme: const IconThemeData(color: Color(0xFFFFFAF3)),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Stack(
+                  children: [
+                    GestureDetector(
+                      onTap: _showAvatarOptions,
+                      child: Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFFFF9A31),
+                              Color(0xFFC84217),
+                            ],
+                          ),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.8),
+                            width: 3,
+                          ),
+                          image: userAvatarBase64 != null
+                              ? DecorationImage(
+                                  image: MemoryImage(base64Decode(userAvatarBase64!)),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: userAvatarBase64 == null
+                            ? const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 48,
+                              )
+                            : null,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: _showAvatarOptions,
+                        child: Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEA7424),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black45,
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
               const Text(
                 'ACTUALIZA TUS DATOS',
                 style: TextStyle(
@@ -3224,7 +3551,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               TextField(
                 controller: nameController,
                 style: const TextStyle(color: Colors.white),
