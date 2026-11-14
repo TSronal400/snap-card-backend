@@ -312,9 +312,19 @@ class ApiService {
 
   /// Consultar al Asistente IA (POST /ai/chat)
   static Future<String> askAI(String message) async {
+    final prefs = await SharedPreferences.getInstance();
+    final customKey = prefs.getString('snapcard_custom_gemini_key') ?? '';
+
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+    };
+    if (customKey.isNotEmpty) {
+      headers['x-custom-gemini-key'] = customKey;
+    }
+
     final response = await http.post(
       Uri.parse('$baseUrl/ai/chat'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({'message': message.trim()}),
     );
 
@@ -324,7 +334,16 @@ class ApiService {
       return data['reply'] as String? ??
           'No pude procesar tu consulta';
     } else {
-      throw ApiException('Error al consultar al asistente IA');
+      dynamic data;
+      try {
+        data = jsonDecode(response.body);
+      } catch (_) {
+        data = null;
+      }
+      final detail = data is Map && data.containsKey('detail')
+          ? data['detail'].toString()
+          : 'Error al consultar al asistente IA';
+      throw ApiException(detail);
     }
   }
 

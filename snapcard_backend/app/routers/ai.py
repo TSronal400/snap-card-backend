@@ -4,7 +4,8 @@ import base64
 import urllib.request
 import urllib.error
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from typing import Optional
+from fastapi import APIRouter, HTTPException, UploadFile, File, Header
 from pydantic import BaseModel, Field
 
 from app.config import settings
@@ -27,8 +28,8 @@ class ChatResponse(BaseModel):
     reply: str
 
 
-def ask_gemini(parts: list, json_mode: bool = False) -> str:
-    api_key = (settings.gemini_api_key or "").strip()
+def ask_gemini(parts: list, json_mode: bool = False, custom_api_key: Optional[str] = None) -> str:
+    api_key = (custom_api_key or settings.gemini_api_key or "").strip()
 
     if not api_key:
         raise HTTPException(
@@ -118,7 +119,10 @@ def ask_gemini(parts: list, json_mode: bool = False) -> str:
 
 
 @router.post("/chat", response_model=ChatResponse)
-def ai_chat(data: ChatRequest):
+def ai_chat(
+    data: ChatRequest,
+    x_custom_gemini_key: Optional[str] = Header(None),
+):
     prompt = data.message.strip()
 
     if not prompt:
@@ -127,17 +131,27 @@ def ai_chat(data: ChatRequest):
             detail="El mensaje no puede estar vacío"
         )
 
-    answer = ask_gemini([
-        {
-            "text": (
-                "Eres el asistente de SNAP CARD, una aplicación "
-                "para coleccionistas de Pokémon TCG. "
-                "Responde en español de forma clara y amable. "
-                "No inventes precios ni datos de cartas. "
-                f"Pregunta del usuario: {prompt}"
-            )
-        }
-    ])
+    has_custom_key = bool(x_custom_gemini_key and x_custom_gemini_key.strip())
+
+    if has_custom_key:
+        system_instruction = (
+            "Eres el asistente avanzado de SNAP CARD con acceso libre y completo. "
+            "El usuario ha conectado su cuenta de IA personal. "
+            "Tienes total libertad para responder cualquier consulta compleja, estrategia de mercado, análisis profundo o cualquier otro tema con total amplitud. "
+            f"Pregunta del usuario: {prompt}"
+        )
+        key_to_use = x_custom_gemini_key.strip()
+    else:
+        system_instruction = (
+            "Eres el asistente básico de SNAP CARD para coleccionistas de Pokémon TCG. "
+            "ATENCIÓN: El usuario NO ha conectado su cuenta de IA personal. "
+            "Por lo tanto, debes responder ÚNICAMENTE sobre cartas Pokémon TCG, precios de colección y consejos básicos del juego. "
+            "Si el usuario pregunta sobre cualquier otro tema ajeno a cartas Pokémon TCG, declina amablemente y recuérdale que conecte su cuenta de IA para tener libertad total. "
+            f"Pregunta del usuario: {prompt}"
+        )
+        key_to_use = None
+
+    answer = ask_gemini([{"text": system_instruction}], custom_api_key=key_to_use)
 
     return ChatResponse(reply=answer)
 
