@@ -73,7 +73,7 @@ class WelcomeScreen extends StatelessWidget {
           // Capa de desenfoque y degradado para que el texto resalte
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 0.8, sigmaY: 0.8),
-            child: Container(color: const Color(0xFF160B08).withOpacity(0.25)),
+            child: Container(color: const Color(0xFF160B08).withValues(alpha: 0.25)),
           ),
           const DecoratedBox(
             decoration: BoxDecoration(
@@ -305,7 +305,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Ej. Ash Ketchum',
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                     filled: true,
                     fillColor: const Color(0xFF22110C),
                     border: OutlineInputBorder(
@@ -330,7 +330,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'tu@correo.com',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                   filled: true,
                   fillColor: const Color(0xFF22110C),
                   border: OutlineInputBorder(
@@ -355,7 +355,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: '••••••••',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                   filled: true,
                   fillColor: const Color(0xFF22110C),
                   border: OutlineInputBorder(
@@ -401,7 +401,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     Text(
                       isLogin ? '¿No tienes cuenta?' : '¿Ya tienes una cuenta?',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 13,
                       ),
                     ),
@@ -575,10 +575,10 @@ class CollectionScreen extends StatelessWidget {
                   colors: [Color(0xFF29150F), Color(0xFF1A0D0A)],
                 ),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFFFA33B).withOpacity(0.3)),
+                border: Border.all(color: const Color(0xFFFFA33B).withValues(alpha: 0.3)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.4),
+                    color: Colors.black.withValues(alpha: 0.4),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -590,7 +590,7 @@ class CollectionScreen extends StatelessWidget {
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEA7424).withOpacity(0.2),
+                      color: const Color(0xFFEA7424).withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -721,11 +721,11 @@ class CollectionCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: Colors.white.withOpacity(0.12),
+          color: Colors.white.withValues(alpha: 0.12),
         ),
         boxShadow: [
           BoxShadow(
-            color: card.colors.last.withOpacity(0.4),
+            color: card.colors.last.withValues(alpha: 0.4),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -741,7 +741,7 @@ class CollectionCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -755,7 +755,7 @@ class CollectionCard extends StatelessWidget {
                 ),
                 Icon(
                   Icons.auto_awesome,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   size: 16,
                 ),
               ],
@@ -772,7 +772,7 @@ class CollectionCard extends StatelessWidget {
               child: Text(
                 card.category.toUpperCase(),
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 9,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1,
@@ -855,7 +855,7 @@ class ScannerScreen extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFFF8D24).withOpacity(0.3),
+                    color: const Color(0xFFFF8D24).withValues(alpha: 0.3),
                     blurRadius: 30,
                   ),
                 ],
@@ -866,7 +866,7 @@ class ScannerScreen extends StatelessWidget {
                   Icon(
                     Icons.style,
                     size: 100,
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                   ),
                   Container(
                     height: 2,
@@ -971,7 +971,7 @@ class SearchScreen extends StatelessWidget {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Buscar cartas...',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                 prefixIcon: const Icon(Icons.search, color: Color(0xFFFFB13B)),
                 filled: true,
                 fillColor: const Color(0xFF21120E),
@@ -1042,7 +1042,7 @@ class AIAssistantScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFF21120E),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
               child: const Text(
                 'Hola Coleccionista. ¿En qué te puedo ayudar hoy? Puedo analizar el valor estimado de tu Charizard o sugerirte nuevas cartas.',
@@ -1061,7 +1061,7 @@ class AIAssistantScreen extends StatelessWidget {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Pregunta sobre tus cartas...',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                       filled: true,
                       fillColor: const Color(0xFF21120E),
                       border: OutlineInputBorder(
@@ -1127,7 +1127,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   width: 3,
                 ),
               ),
@@ -1268,7 +1268,7 @@ class ProfileStat extends StatelessWidget {
         color: const Color(0xFF21120E),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withValues(alpha: 0.08),
         ),
       ),
       child: Column(

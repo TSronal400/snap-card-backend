@@ -245,7 +245,7 @@ class WelcomeScreen extends StatelessWidget {
           // Capa de desenfoque y degradado para que el texto resalte
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 0.8, sigmaY: 0.8),
-            child: Container(color: const Color(0xFF160B08).withOpacity(0.25)),
+            child: Container(color: const Color(0xFF160B08).withValues(alpha: 0.25)),
           ),
           const DecoratedBox(
             decoration: BoxDecoration(
@@ -541,7 +541,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Ej. Ash Ketchum',
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                     filled: true,
                     fillColor: const Color(0xFF22110C),
                     border: OutlineInputBorder(
@@ -568,7 +568,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'tu@correo.com',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                   filled: true,
                   fillColor: const Color(0xFF22110C),
                   border: OutlineInputBorder(
@@ -594,7 +594,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: '••••••••',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                   filled: true,
                   fillColor: const Color(0xFF22110C),
                   border: OutlineInputBorder(
@@ -642,7 +642,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     Text(
                       isLogin ? '¿No tienes cuenta?' : '¿Ya tienes una cuenta?',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 13,
                       ),
                     ),
@@ -860,7 +860,7 @@ void _showCardDetails(dynamic card) {
       imageUrl,
       height: 260,
       fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => const Icon(
+      errorBuilder: (_, _, _) => const Icon(
         Icons.style,
         size: 100,
         color: Colors.white54,
@@ -1104,7 +1104,7 @@ else
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.12),
+          color: Colors.white.withValues(alpha: 0.12),
         ),
       ),
       child: Padding(
@@ -1121,7 +1121,7 @@ else
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
@@ -1137,7 +1137,7 @@ else
                   onTap: () => _confirmDeleteWishlistCard(card),
                   child: Icon(
                     Icons.delete_outline,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     size: 18,
                   ),
                 ),
@@ -1170,7 +1170,7 @@ else
             Text(
               card.category.toUpperCase(),
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1,
@@ -1217,7 +1217,7 @@ else
                 ),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: const Color(0xFFFFA33B).withOpacity(0.3),
+                  color: const Color(0xFFFFA33B).withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -1226,7 +1226,7 @@ else
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEA7424).withOpacity(0.2),
+                      color: const Color(0xFFEA7424).withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -1319,7 +1319,7 @@ else
                                 Icon(
                                   Icons.style_outlined,
                                   size: 64,
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                 ),
                                 const SizedBox(height: 12),
                                 const Text(
@@ -1382,7 +1382,7 @@ else
                                   borderRadius:
                                       BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: Colors.white.withOpacity(0.12),
+                                    color: Colors.white.withValues(alpha: 0.12),
                                   ),
                                 ),
                                 child: Padding(
@@ -1403,7 +1403,7 @@ else
                                             ),
                                             decoration: BoxDecoration(
                                               color: Colors.black
-                                                  .withOpacity(0.3),
+                                                  .withValues(alpha: 0.3),
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                             ),
@@ -1423,7 +1423,7 @@ else
                                             child: Icon(
                                               Icons.delete_outline,
                                               color: Colors.white
-                                                  .withOpacity(0.8),
+                                                  .withValues(alpha: 0.8),
                                               size: 18,
                                             ),
                                           ),
@@ -1461,7 +1461,7 @@ else
                                         card.category.toUpperCase(),
                                         style: TextStyle(
                                           color: Colors.white
-                                              .withOpacity(0.7),
+                                              .withValues(alpha: 0.7),
                                           fontSize: 9,
                                           fontWeight: FontWeight.w700,
                                           letterSpacing: 1,
@@ -1521,7 +1521,7 @@ else
                                 Icon(
                                   Icons.favorite_border,
                                   size: 54,
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                 ),
                                 const SizedBox(height: 12),
                                 const Text(
@@ -1673,7 +1673,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               height: 400,
               child: ListView.separated(
                 itemCount: candidates.length,
-                separatorBuilder: (_, __) => const Divider(
+                separatorBuilder: (_, _) => const Divider(
                   color: Colors.white24,
                 ),
                 itemBuilder: (itemContext, index) {
@@ -1729,7 +1729,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     child: Image.network(
                       imageUrl,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) =>
+                      errorBuilder: (_, _, _) =>
                           const Icon(
                         Icons.image_not_supported,
                         color: Colors.white54,
@@ -1758,7 +1758,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         width: 85,
         height: 115,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => const SizedBox(
+        errorBuilder: (_, _, _) => const SizedBox(
           width: 85,
           height: 115,
           child: Icon(
@@ -1992,7 +1992,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFF8D24).withOpacity(0.3),
+                      color: const Color(0xFFFF8D24).withValues(alpha: 0.3),
                       blurRadius: 30,
                     ),
                   ],
@@ -2003,7 +2003,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     Icon(
                       Icons.style,
                       size: 100,
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                     ),
                     Container(
                       height: 2,
@@ -2235,7 +2235,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 keyboardAppearance: Brightness.dark,
                 decoration: InputDecoration(
                   hintText: 'Buscar cartas...',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                   prefixIcon: const Icon(
                     Icons.search,
                     color: Color(0xFFFFB13B),
@@ -2273,7 +2273,7 @@ class _SearchScreenState extends State<SearchScreen> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: categories.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final cat = categories[index];
                   final isSelected = selectedCategory == cat;
@@ -2350,7 +2350,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     : 'Intenta con otro nombre o explora las categorías.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 14,
                   height: 1.6,
                 ),
@@ -2392,7 +2392,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                       ),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color: Colors.white.withOpacity(0.12),
+                                        color: Colors.white.withValues(alpha: 0.12),
                                       ),
                                     ),
                                     child: Padding(
@@ -2408,7 +2408,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                             ),
                                             decoration: BoxDecoration(
                                               color:
-                                                  Colors.black.withOpacity(0.3),
+                                                  Colors.black.withValues(alpha: 0.3),
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                             ),
@@ -2431,7 +2431,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                                       card.imageUrl,
                                                       fit: BoxFit.contain,
                                                       errorBuilder:
-                                                          (_, __, ___) {
+                                                          (_, _, _) {
                                                         return const Icon(
                                                           Icons
                                                               .image_not_supported,
@@ -2452,7 +2452,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                             card.category.toUpperCase(),
                                             style: TextStyle(
                                               color: Colors.white
-                                                  .withOpacity(0.7),
+                                                  .withValues(alpha: 0.7),
                                               fontSize: 9,
                                               fontWeight: FontWeight.w700,
                                               letterSpacing: 1,
@@ -2596,7 +2596,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'API Key de Gemini / Google AI',
-                      labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                       hintText: 'AIzaSy...',
                       hintStyle: const TextStyle(color: Colors.white24),
                       filled: true,
@@ -2715,7 +2715,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFF21120E),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white.withOpacity(0.08)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
@@ -2766,7 +2766,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         ),
                         border: msg.isUser
                             ? null
-                            : Border.all(color: Colors.white.withOpacity(0.08)),
+                            : Border.all(color: Colors.white.withValues(alpha: 0.08)),
                       ),
                       child: Text(
                         msg.text,
@@ -2791,7 +2791,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Pregunta sobre tus cartas...',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                       filled: true,
                       fillColor: const Color(0xFF21120E),
                       border: OutlineInputBorder(
@@ -3038,13 +3038,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   SwitchListTile(
                     title: const Text('Notificaciones push', style: TextStyle(color: Colors.white)),
                     value: pushNotif,
-                    activeColor: const Color(0xFFEA7424),
+                    activeThumbColor: const Color(0xFFEA7424),
                     onChanged: (val) => setDialogState(() => pushNotif = val),
                   ),
                   SwitchListTile(
                     title: const Text('Alertas de precios de cartas', style: TextStyle(color: Colors.white)),
                     value: priceAlerts,
-                    activeColor: const Color(0xFFEA7424),
+                    activeThumbColor: const Color(0xFFEA7424),
                     onChanged: (val) => setDialogState(() => priceAlerts = val),
                   ),
                 ],
@@ -3201,7 +3201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Escribe tu mensaje...',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                       filled: true,
                       fillColor: const Color(0xFF160B08),
                       border: OutlineInputBorder(
@@ -3327,7 +3327,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         width: 3,
                       ),
                       image: userAvatarBase64 != null
@@ -3514,7 +3514,7 @@ class ProfileStat extends StatelessWidget {
         color: const Color(0xFF21120E),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withValues(alpha: 0.08),
         ),
       ),
       child: Column(
@@ -3803,7 +3803,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             width: 3,
                           ),
                           image: userAvatarBase64 != null
@@ -3866,7 +3866,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'Nombre de Coleccionista',
-                  labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                  labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                   filled: true,
                   fillColor: const Color(0xFF22110C),
                   border: OutlineInputBorder(
@@ -3882,7 +3882,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'Correo electrónico',
-                  labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                  labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                   filled: true,
                   fillColor: const Color(0xFF22110C),
                   border: OutlineInputBorder(
@@ -4011,7 +4011,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
             card.imageUrl,
             height: 330,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const Icon(
+            errorBuilder: (_, _, _) => const Icon(
               Icons.image_not_supported,
               color: Colors.white54,
               size: 80,
