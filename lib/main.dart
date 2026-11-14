@@ -2215,51 +2215,58 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             const SizedBox(height: 24),
-           TextField(
-  controller: searchController,
-  onChanged: (_) {
-    _debounce?.cancel();
-    _debounce = Timer(
-      const Duration(milliseconds: 500),
-      _performSearch,
-    );
-  },
-  style: const TextStyle(color: Colors.white),
-  cursorColor: const Color(0xFFFFB13B),
-  keyboardAppearance: Brightness.dark,
-  decoration: InputDecoration(
-    hintText: 'Buscar cartas...',
-    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-    prefixIcon: const Icon(
-      Icons.search,
-      color: Color(0xFFFFB13B),
-    ),
-    suffixIcon: searchController.text.isNotEmpty
-        ? IconButton(
-            icon: const Icon(Icons.clear, color: Colors.white54),
-            onPressed: () {
-              searchController.clear();
-              setState(() {});
-              _performSearch();
-            },
-          )
-        : null,
-    filled: true,
-    fillColor: const Color(0xFF21120E),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide.none,
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide.none,
-    ),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide.none,
-    ),
-  ),
-),
+            Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: const Color(0xFFEA7424),
+                ),
+              ),
+              child: TextField(
+                controller: searchController,
+                onChanged: (_) {
+                  _debounce?.cancel();
+                  _debounce = Timer(
+                    const Duration(milliseconds: 500),
+                    _performSearch,
+                  );
+                },
+                style: const TextStyle(color: Colors.white),
+                cursorColor: const Color(0xFFFFB13B),
+                keyboardAppearance: Brightness.dark,
+                decoration: InputDecoration(
+                  hintText: 'Buscar cartas...',
+                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Color(0xFFFFB13B),
+                  ),
+                  suffixIcon: searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.white54),
+                          onPressed: () {
+                            searchController.clear();
+                            setState(() {});
+                            _performSearch();
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: const Color(0xFF21120E),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: const BorderSide(color: Color(0xFFEA7424), width: 1.5),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 14),
             SizedBox(
               height: 38,
