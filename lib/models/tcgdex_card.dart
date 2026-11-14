@@ -1,4 +1,6 @@
 
+import 'dart:convert';
+
 class TcgdexCard {
   final String id;
   final String name;
@@ -32,19 +34,40 @@ class TcgdexCard {
     final image = json['image']?.toString() ?? '';
     final rawTypes = json['types'];
 
+    const fallbackImage = 'https://images.pokemontcg.io/base1/4_hires.png';
+    final resolvedImage = image.isEmpty
+        ? fallbackImage
+        : image.startsWith('http')
+            ? image
+            : '$image/high.png';
+
+    List<String> parsedTypes = [];
+    if (rawTypes is List) {
+      parsedTypes = rawTypes.map((t) => t.toString()).toList();
+    } else if (rawTypes is String && rawTypes.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawTypes);
+        if (decoded is List) {
+          parsedTypes = decoded.map((t) => t.toString()).toList();
+        } else {
+          parsedTypes = [rawTypes];
+        }
+      } catch (_) {
+        parsedTypes = rawTypes.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
+      }
+    }
+
     return TcgdexCard(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? 'Carta Pokémon',
-      imageUrl: image.isEmpty ? '' : '$image/high.png',
+      imageUrl: resolvedImage,
       category: json['category']?.toString() ?? 'Pokémon',
       rarity: json['rarity']?.toString() ?? 'Sin especificar',
       localId: json['local_id']?.toString() ?? '',
       setId: json['set_id']?.toString() ?? '',
       setName: json['set_name']?.toString() ?? '',
       hp: int.tryParse(json['hp']?.toString() ?? ''),
-      types: rawTypes is List
-          ? rawTypes.map((type) => type.toString()).toList()
-          : [],
+      types: parsedTypes,
       stage: json['stage']?.toString() ?? '',
       illustrator: json['illustrator']?.toString() ?? '',
     );
