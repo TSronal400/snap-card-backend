@@ -736,6 +736,24 @@ class ApiService {
       'developer': 'Equipo Snap Card & Ronal',
     };
   }
+
+  /// Guardar foto de perfil localmente en SharedPreferences
+  static Future<void> saveUserAvatar(int userId, String base64Image) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('snapcard_avatar_$userId', base64Image);
+  }
+
+  /// Obtener foto de perfil localmente de SharedPreferences
+  static Future<String?> getUserAvatar(int userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('snapcard_avatar_$userId');
+  }
+
+  /// Eliminar foto de perfil localmente
+  static Future<void> removeUserAvatar(int userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('snapcard_avatar_$userId');
+  }
 }
 
 class ApiException implements Exception {
