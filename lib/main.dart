@@ -2745,6 +2745,9 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   UserModel? currentUser;
   String? userAvatarBase64;
+  int totalCardsCount = 0;
+  double totalCollectionValue = 0.0;
+  int completionPercentage = 0;
   bool isLoading = true;
 
   @override
@@ -2770,10 +2773,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final userFromApi = await ApiService.getProfile();
       final avatarFromApi = await ApiService.getUserAvatar(userFromApi.id);
+
+      List<CardItem> normalCards = [];
+      List<TcgdexCard> tcgdexCards = [];
+      try {
+        normalCards = await ApiService.getUserCollection();
+      } catch (_) {}
+      try {
+        tcgdexCards = await ApiService.getTcgdexCollection();
+      } catch (_) {}
+
+      final count = normalCards.length + tcgdexCards.length;
+      final totalVal = normalCards.fold(0.0, (sum, item) => sum + item.price);
+      final percentage = (count / 100 * 100).clamp(0, 100).toInt();
+
       if (mounted) {
         setState(() {
           currentUser = userFromApi;
           userAvatarBase64 = avatarFromApi;
+          totalCardsCount = count;
+          totalCollectionValue = totalVal;
+          completionPercentage = percentage;
         });
       }
     } catch (_) {}
@@ -3264,25 +3284,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 28),
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: ProfileStat(
-                  value: '6',
+                  value: '$totalCardsCount',
                   label: 'Cartas',
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: ProfileStat(
-                  value: '\$801',
+                  value: '\$${totalCollectionValue.toStringAsFixed(0)}',
                   label: 'Valor total',
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: ProfileStat(
-                  value: '5%',
+                  value: '$completionPercentage%',
                   label: 'Completado',
                 ),
               ),
