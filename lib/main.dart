@@ -2954,34 +2954,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: const Color(0xFF21120E),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               title: const Text(
-                'Apariencia y Modo Calor',
+                'Apariencia y Tema',
                 style: TextStyle(color: Color(0xFFFFFAF3), fontWeight: FontWeight.bold),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SwitchListTile(
-                    activeColor: currentTheme.primaryColor,
-                    title: const Text('Modo Oscuro', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                    subtitle: Text(
-                      isDark ? 'Tema oscuro activo' : 'Tema claro activo',
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
-                    ),
-                    value: isDark,
-                    onChanged: (val) {
-                      setDialogState(() {
-                        isDark = val;
-                      });
-                      final updated = currentTheme.copyWith(isDarkMode: val);
-                      appThemeNotifier.value = updated;
-                      ApiService.updateSettings(darkMode: val);
-                    },
-                  ),
-                  const Divider(color: Colors.white12, height: 24),
                   const Text(
-                    'Modo Calor / Color de Acento',
-                    style: TextStyle(color: Color(0xFFFFC564), fontSize: 13, fontWeight: FontWeight.bold),
+                    'MODO DE PANTALLA',
+                    style: TextStyle(color: Color(0xFFFFC564), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            setDialogState(() {
+                              isDark = true;
+                            });
+                            final updated = currentTheme.copyWith(isDarkMode: true);
+                            appThemeNotifier.value = updated;
+                            ApiService.updateSettings(darkMode: true);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isDark ? currentTheme.primaryColor : const Color(0xFF160B08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isDark ? currentTheme.primaryColor : Colors.white24,
+                              ),
+                            ),
+                            child: const Column(
+                              children: [
+                                Icon(Icons.dark_mode, color: Colors.white, size: 22),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Modo Oscuro',
+                                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            setDialogState(() {
+                              isDark = false;
+                            });
+                            final updated = currentTheme.copyWith(isDarkMode: false);
+                            appThemeNotifier.value = updated;
+                            ApiService.updateSettings(darkMode: false);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: !isDark ? currentTheme.primaryColor : const Color(0xFF160B08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: !isDark ? currentTheme.primaryColor : Colors.white24,
+                              ),
+                            ),
+                            child: const Column(
+                              children: [
+                                Icon(Icons.light_mode, color: Colors.white, size: 22),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Modo Claro',
+                                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(color: Colors.white12, height: 28),
+                  const Text(
+                    'COLOR DE TEMA / ACENTO',
+                    style: TextStyle(color: Color(0xFFFFC564), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1),
                   ),
                   const SizedBox(height: 12),
                   Wrap(
@@ -3024,7 +3081,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         )
                                       ]
                                     : null,
-                                ),
+                              ),
                               child: isSelected
                                   ? const Icon(Icons.check, color: Colors.white, size: 20)
                                   : null,
