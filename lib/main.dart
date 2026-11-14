@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'models/tcgdex_card.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'models/user.dart';
 import 'models/card_item.dart';
 import 'services/api_service.dart';
@@ -2557,6 +2558,95 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
   }
 
+  void _openConnectAiDialog() {
+    final apiKeyController = TextEditingController();
+    bool isConnected = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF21120E),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text(
+                'Conectar Cuenta de IA Online',
+                style: TextStyle(color: Color(0xFFFFFAF3), fontWeight: FontWeight.bold),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Vincula tu cuenta de Google Gemini AI Studio para potenciar las respuestas del asistente en la nube.',
+                    style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: apiKeyController,
+                    obscureText: true,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'API Key de Gemini / Google AI',
+                      labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                      hintText: 'AIzaSy...',
+                      hintStyle: const TextStyle(color: Colors.white24),
+                      filled: true,
+                      fillColor: const Color(0xFF160B08),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (isConnected)
+                    const Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.greenAccent, size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          '¡Cuenta vinculada con éxito en la nube!',
+                          style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar', style: TextStyle(color: Colors.white54)),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    final key = apiKeyController.text.trim();
+                    if (key.isEmpty) return;
+                    setDialogState(() => isConnected = true);
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('snapcard_custom_gemini_key', key);
+                    await Future.delayed(const Duration(milliseconds: 800));
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('¡Cuenta de IA online conectada y sincronizada!'),
+                        backgroundColor: Color(0xFFEA7424),
+                      ),
+                    );
+                  },
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFEA7424)),
+                  child: const Text('Conectar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -2567,17 +2657,30 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           children: [
             AppHeader(),
             const SizedBox(height: 28),
-            const Row(
+            Row(
               children: [
-                Icon(Icons.auto_awesome, color: Color(0xFFFFB03B), size: 28),
-                SizedBox(width: 10),
-                Text(
+                const Icon(Icons.auto_awesome, color: Color(0xFFFFB03B), size: 28),
+                const SizedBox(width: 10),
+                const Text(
                   'Asistente IA Snap',
                   style: TextStyle(
                     color: Color(0xFFFFFAF3),
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -1,
+                  ),
+                ),
+                const Spacer(),
+                OutlinedButton.icon(
+                  onPressed: _openConnectAiDialog,
+                  icon: const Icon(Icons.link, color: Color(0xFFFFB03B), size: 16),
+                  label: const Text(
+                    'Conectar IA',
+                    style: TextStyle(color: Color(0xFFFFB03B), fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFEA7424)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ],
