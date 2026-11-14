@@ -2940,21 +2940,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           builder: (context, setDialogState) {
             final currentTheme = appThemeNotifier.value;
             bool isDark = currentTheme.isDarkMode;
-            String selectedColor = currentTheme.themeColor;
-
-            final colorOptions = [
-              {'id': 'orange', 'name': 'Naranja Fuego', 'color': const Color(0xFFEA7424)},
-              {'id': 'red', 'name': 'Rojo Calor', 'color': const Color(0xFFD32F2F)},
-              {'id': 'blue', 'name': 'Azul Eléctrico', 'color': const Color(0xFF1976D2)},
-              {'id': 'green', 'name': 'Verde Planta', 'color': const Color(0xFF388E3C)},
-              {'id': 'purple', 'name': 'Morado Psíquico', 'color': const Color(0xFF7B1FA2)},
-            ];
 
             return AlertDialog(
               backgroundColor: const Color(0xFF21120E),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               title: const Text(
-                'Apariencia y Tema',
+                'Apariencia',
                 style: TextStyle(color: Color(0xFFFFFAF3), fontWeight: FontWeight.bold),
               ),
               content: Column(
@@ -2962,14 +2953,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'MODO DE PANTALLA',
+                    'SELECCIONA EL MODO DE TEMA',
                     style: TextStyle(color: Color(0xFFFFC564), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 14),
                   Row(
                     children: [
                       Expanded(
                         child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
                           onTap: () {
                             setDialogState(() {
                               isDark = true;
@@ -2979,30 +2971,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ApiService.updateSettings(darkMode: true);
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             decoration: BoxDecoration(
-                              color: isDark ? currentTheme.primaryColor : const Color(0xFF160B08),
-                              borderRadius: BorderRadius.circular(12),
+                              color: isDark ? const Color(0xFFEA7424) : const Color(0xFF160B08),
+                              borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: isDark ? currentTheme.primaryColor : Colors.white24,
+                                color: isDark ? const Color(0xFFEA7424) : Colors.white24,
+                                width: 2,
                               ),
                             ),
                             child: const Column(
                               children: [
-                                Icon(Icons.dark_mode, color: Colors.white, size: 22),
-                                SizedBox(height: 4),
+                                Icon(Icons.dark_mode_rounded, color: Colors.white, size: 28),
+                                SizedBox(height: 8),
                                 Text(
                                   'Modo Oscuro',
-                                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
                           onTap: () {
                             setDialogState(() {
                               isDark = false;
@@ -3012,21 +3006,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ApiService.updateSettings(darkMode: false);
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             decoration: BoxDecoration(
-                              color: !isDark ? currentTheme.primaryColor : const Color(0xFF160B08),
-                              borderRadius: BorderRadius.circular(12),
+                              color: !isDark ? const Color(0xFFEA7424) : const Color(0xFF160B08),
+                              borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: !isDark ? currentTheme.primaryColor : Colors.white24,
+                                color: !isDark ? const Color(0xFFEA7424) : Colors.white24,
+                                width: 2,
                               ),
                             ),
                             child: const Column(
                               children: [
-                                Icon(Icons.light_mode, color: Colors.white, size: 22),
-                                SizedBox(height: 4),
+                                Icon(Icons.light_mode_rounded, color: Colors.white, size: 28),
+                                SizedBox(height: 8),
                                 Text(
                                   'Modo Claro',
-                                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
@@ -3035,77 +3030,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ],
                   ),
-                  const Divider(color: Colors.white12, height: 28),
-                  const Text(
-                    'COLOR DE TEMA / ACENTO',
-                    style: TextStyle(color: Color(0xFFFFC564), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: colorOptions.map((opt) {
-                      final id = opt['id'] as String;
-                      final name = opt['name'] as String;
-                      final color = opt['color'] as Color;
-                      final isSelected = selectedColor == id;
-
-                      return GestureDetector(
-                        onTap: () {
-                          setDialogState(() {
-                            selectedColor = id;
-                          });
-                          final updated = currentTheme.copyWith(themeColor: id);
-                          appThemeNotifier.value = updated;
-                          ApiService.updateSettings(themeColor: id);
-                        },
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: isSelected ? Colors.white : Colors.transparent,
-                                  width: 3,
-                                ),
-                                boxShadow: isSelected
-                                    ? [
-                                        BoxShadow(
-                                          color: color.withOpacity(0.6),
-                                          blurRadius: 8,
-                                          spreadRadius: 1,
-                                        )
-                                      ]
-                                    : null,
-                              ),
-                              child: isSelected
-                                  ? const Icon(Icons.check, color: Colors.white, size: 20)
-                                  : null,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              name.split(' ')[0],
-                              style: TextStyle(
-                                color: isSelected ? Colors.white : Colors.white54,
-                                fontSize: 10,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Aceptar', style: TextStyle(color: currentTheme.accentColor)),
+                  child: const Text('Aceptar', style: TextStyle(color: Color(0xFFFFA33B))),
                 ),
               ],
             );
