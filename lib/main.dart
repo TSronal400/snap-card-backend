@@ -1,7 +1,9 @@
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'models/tcgdex_card.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'models/user.dart';
 import 'models/card_item.dart';
 import 'services/api_service.dart';
@@ -86,20 +88,113 @@ class FeatureDot extends StatelessWidget {
   }
 }
 
-class SnapCardApp extends StatelessWidget {
+class ThemeParams {
+  final bool isDarkMode;
+  final String themeColor;
+
+  const ThemeParams({
+    this.isDarkMode = true,
+    this.themeColor = 'orange',
+  });
+
+  Color get primaryColor {
+    switch (themeColor) {
+      case 'red':
+        return const Color(0xFFD32F2F);
+      case 'blue':
+        return const Color(0xFF1976D2);
+      case 'green':
+        return const Color(0xFF388E3C);
+      case 'purple':
+        return const Color(0xFF7B1FA2);
+      case 'orange':
+      default:
+        return const Color(0xFFEA7424);
+    }
+  }
+
+  Color get accentColor {
+    switch (themeColor) {
+      case 'red':
+        return const Color(0xFFFF5252);
+      case 'blue':
+        return const Color(0xFF448AFF);
+      case 'green':
+        return const Color(0xFF69F0AE);
+      case 'purple':
+        return const Color(0xFFE040FB);
+      case 'orange':
+      default:
+        return const Color(0xFFFFA33B);
+    }
+  }
+
+  ThemeParams copyWith({
+    bool? isDarkMode,
+    String? themeColor,
+  }) {
+    return ThemeParams(
+      isDarkMode: isDarkMode ?? this.isDarkMode,
+      themeColor: themeColor ?? this.themeColor,
+    );
+  }
+}
+
+final ValueNotifier<ThemeParams> appThemeNotifier = ValueNotifier(const ThemeParams());
+
+class SnapCardApp extends StatefulWidget {
   const SnapCardApp({super.key});
 
   @override
+  State<SnapCardApp> createState() => _SnapCardAppState();
+}
+
+class _SnapCardAppState extends State<SnapCardApp> {
+  @override
+  void initState() {
+    super.initState();
+    _loadThemeSettings();
+  }
+
+  Future<void> _loadThemeSettings() async {
+    final isDark = await ApiService.getDarkMode();
+    final color = await ApiService.getThemeColor();
+    appThemeNotifier.value = ThemeParams(isDarkMode: isDark, themeColor: color);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'SNAP CARD',
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        fontFamily: 'Arial',
-      ),
-      home: const WelcomeScreen(),
+    return ValueListenableBuilder<ThemeParams>(
+      valueListenable: appThemeNotifier,
+      builder: (context, themeParams, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'SNAP CARD',
+          themeMode: themeParams.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          theme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.light,
+            primaryColor: themeParams.primaryColor,
+            colorScheme: ColorScheme.light(
+              primary: themeParams.primaryColor,
+              secondary: themeParams.accentColor,
+            ),
+            fontFamily: 'Arial',
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            primaryColor: themeParams.primaryColor,
+            scaffoldBackgroundColor: const Color(0xFF160B08),
+            colorScheme: ColorScheme.dark(
+              primary: themeParams.primaryColor,
+              secondary: themeParams.accentColor,
+            ),
+            fontFamily: 'Arial',
+          ),
+          home: const WelcomeScreen(),
+        );
+      },
     );
   }
 }
@@ -150,7 +245,7 @@ class WelcomeScreen extends StatelessWidget {
           // Capa de desenfoque y degradado para que el texto resalte
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 0.8, sigmaY: 0.8),
-            child: Container(color: const Color(0xFF160B08).withOpacity(0.25)),
+            child: Container(color: const Color(0xFF160B08).withValues(alpha: 0.25)),
           ),
           const DecoratedBox(
             decoration: BoxDecoration(
@@ -446,7 +541,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Ej. Ash Ketchum',
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                     filled: true,
                     fillColor: const Color(0xFF22110C),
                     border: OutlineInputBorder(
@@ -473,7 +568,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'tu@correo.com',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                   filled: true,
                   fillColor: const Color(0xFF22110C),
                   border: OutlineInputBorder(
@@ -499,7 +594,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: '••••••••',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                   filled: true,
                   fillColor: const Color(0xFF22110C),
                   border: OutlineInputBorder(
@@ -547,7 +642,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     Text(
                       isLogin ? '¿No tienes cuenta?' : '¿Ya tienes una cuenta?',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 13,
                       ),
                     ),
@@ -765,7 +860,7 @@ void _showCardDetails(dynamic card) {
       imageUrl,
       height: 260,
       fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => const Icon(
+      errorBuilder: (_, _, _) => const Icon(
         Icons.style,
         size: 100,
         color: Colors.white54,
@@ -1009,7 +1104,7 @@ else
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.12),
+          color: Colors.white.withValues(alpha: 0.12),
         ),
       ),
       child: Padding(
@@ -1026,7 +1121,7 @@ else
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
@@ -1042,7 +1137,7 @@ else
                   onTap: () => _confirmDeleteWishlistCard(card),
                   child: Icon(
                     Icons.delete_outline,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     size: 18,
                   ),
                 ),
@@ -1075,7 +1170,7 @@ else
             Text(
               card.category.toUpperCase(),
               style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 9,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1,
@@ -1122,7 +1217,7 @@ else
                 ),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: const Color(0xFFFFA33B).withOpacity(0.3),
+                  color: const Color(0xFFFFA33B).withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -1131,7 +1226,7 @@ else
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEA7424).withOpacity(0.2),
+                      color: const Color(0xFFEA7424).withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -1224,7 +1319,7 @@ else
                                 Icon(
                                   Icons.style_outlined,
                                   size: 64,
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                 ),
                                 const SizedBox(height: 12),
                                 const Text(
@@ -1287,7 +1382,7 @@ else
                                   borderRadius:
                                       BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: Colors.white.withOpacity(0.12),
+                                    color: Colors.white.withValues(alpha: 0.12),
                                   ),
                                 ),
                                 child: Padding(
@@ -1308,7 +1403,7 @@ else
                                             ),
                                             decoration: BoxDecoration(
                                               color: Colors.black
-                                                  .withOpacity(0.3),
+                                                  .withValues(alpha: 0.3),
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                             ),
@@ -1328,7 +1423,7 @@ else
                                             child: Icon(
                                               Icons.delete_outline,
                                               color: Colors.white
-                                                  .withOpacity(0.8),
+                                                  .withValues(alpha: 0.8),
                                               size: 18,
                                             ),
                                           ),
@@ -1366,7 +1461,7 @@ else
                                         card.category.toUpperCase(),
                                         style: TextStyle(
                                           color: Colors.white
-                                              .withOpacity(0.7),
+                                              .withValues(alpha: 0.7),
                                           fontSize: 9,
                                           fontWeight: FontWeight.w700,
                                           letterSpacing: 1,
@@ -1426,7 +1521,7 @@ else
                                 Icon(
                                   Icons.favorite_border,
                                   size: 54,
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                 ),
                                 const SizedBox(height: 12),
                                 const Text(
@@ -1578,7 +1673,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               height: 400,
               child: ListView.separated(
                 itemCount: candidates.length,
-                separatorBuilder: (_, __) => const Divider(
+                separatorBuilder: (_, _) => const Divider(
                   color: Colors.white24,
                 ),
                 itemBuilder: (itemContext, index) {
@@ -1634,7 +1729,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     child: Image.network(
                       imageUrl,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) =>
+                      errorBuilder: (_, _, _) =>
                           const Icon(
                         Icons.image_not_supported,
                         color: Colors.white54,
@@ -1663,7 +1758,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         width: 85,
         height: 115,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => const SizedBox(
+        errorBuilder: (_, _, _) => const SizedBox(
           width: 85,
           height: 115,
           child: Icon(
@@ -1897,7 +1992,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFF8D24).withOpacity(0.3),
+                      color: const Color(0xFFFF8D24).withValues(alpha: 0.3),
                       blurRadius: 30,
                     ),
                   ],
@@ -1908,7 +2003,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     Icon(
                       Icons.style,
                       size: 100,
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                     ),
                     Container(
                       height: 2,
@@ -2120,58 +2215,65 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             const SizedBox(height: 24),
-           TextField(
-  controller: searchController,
-  onChanged: (_) {
-    _debounce?.cancel();
-    _debounce = Timer(
-      const Duration(milliseconds: 500),
-      _performSearch,
-    );
-  },
-  style: const TextStyle(color: Colors.white),
-  cursorColor: const Color(0xFFFFB13B),
-  keyboardAppearance: Brightness.dark,
-  decoration: InputDecoration(
-    hintText: 'Buscar cartas...',
-    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-    prefixIcon: const Icon(
-      Icons.search,
-      color: Color(0xFFFFB13B),
-    ),
-    suffixIcon: searchController.text.isNotEmpty
-        ? IconButton(
-            icon: const Icon(Icons.clear, color: Colors.white54),
-            onPressed: () {
-              searchController.clear();
-              setState(() {});
-              _performSearch();
-            },
-          )
-        : null,
-    filled: true,
-    fillColor: const Color(0xFF21120E),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide.none,
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide.none,
-    ),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(18),
-      borderSide: BorderSide.none,
-    ),
-  ),
-),
+            Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: const Color(0xFFEA7424),
+                ),
+              ),
+              child: TextField(
+                controller: searchController,
+                onChanged: (_) {
+                  _debounce?.cancel();
+                  _debounce = Timer(
+                    const Duration(milliseconds: 500),
+                    _performSearch,
+                  );
+                },
+                style: const TextStyle(color: Colors.white),
+                cursorColor: const Color(0xFFFFB13B),
+                keyboardAppearance: Brightness.dark,
+                decoration: InputDecoration(
+                  hintText: 'Buscar cartas...',
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Color(0xFFFFB13B),
+                  ),
+                  suffixIcon: searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.white54),
+                          onPressed: () {
+                            searchController.clear();
+                            setState(() {});
+                            _performSearch();
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: const Color(0xFF21120E),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: const BorderSide(color: Color(0xFFEA7424), width: 1.5),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 14),
             SizedBox(
               height: 38,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: categories.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final cat = categories[index];
                   final isSelected = selectedCategory == cat;
@@ -2248,7 +2350,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     : 'Intenta con otro nombre o explora las categorías.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 14,
                   height: 1.6,
                 ),
@@ -2290,7 +2392,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                       ),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color: Colors.white.withOpacity(0.12),
+                                        color: Colors.white.withValues(alpha: 0.12),
                                       ),
                                     ),
                                     child: Padding(
@@ -2306,7 +2408,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                             ),
                                             decoration: BoxDecoration(
                                               color:
-                                                  Colors.black.withOpacity(0.3),
+                                                  Colors.black.withValues(alpha: 0.3),
                                               borderRadius:
                                                   BorderRadius.circular(8),
                                             ),
@@ -2329,7 +2431,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                                       card.imageUrl,
                                                       fit: BoxFit.contain,
                                                       errorBuilder:
-                                                          (_, __, ___) {
+                                                          (_, _, _) {
                                                         return const Icon(
                                                           Icons
                                                               .image_not_supported,
@@ -2350,7 +2452,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                             card.category.toUpperCase(),
                                             style: TextStyle(
                                               color: Colors.white
-                                                  .withOpacity(0.7),
+                                                  .withValues(alpha: 0.7),
                                               fontSize: 9,
                                               fontWeight: FontWeight.w700,
                                               letterSpacing: 1,
@@ -2463,6 +2565,95 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
   }
 
+  void _openConnectAiDialog() {
+    final apiKeyController = TextEditingController();
+    bool isConnected = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF21120E),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text(
+                'Conectar Cuenta de IA Online',
+                style: TextStyle(color: Color(0xFFFFFAF3), fontWeight: FontWeight.bold),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Vincula tu cuenta de Google Gemini AI Studio para potenciar las respuestas del asistente en la nube.',
+                    style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: apiKeyController,
+                    obscureText: true,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'API Key de Gemini / Google AI',
+                      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                      hintText: 'AIzaSy...',
+                      hintStyle: const TextStyle(color: Colors.white24),
+                      filled: true,
+                      fillColor: const Color(0xFF160B08),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (isConnected)
+                    const Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.greenAccent, size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          '¡Cuenta vinculada con éxito en la nube!',
+                          style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar', style: TextStyle(color: Colors.white54)),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    final key = apiKeyController.text.trim();
+                    if (key.isEmpty) return;
+                    setDialogState(() => isConnected = true);
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('snapcard_custom_gemini_key', key);
+                    await Future.delayed(const Duration(milliseconds: 800));
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('¡Cuenta de IA online conectada y sincronizada!'),
+                        backgroundColor: Color(0xFFEA7424),
+                      ),
+                    );
+                  },
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFEA7424)),
+                  child: const Text('Conectar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -2473,17 +2664,30 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           children: [
             AppHeader(),
             const SizedBox(height: 28),
-            const Row(
+            Row(
               children: [
-                Icon(Icons.auto_awesome, color: Color(0xFFFFB03B), size: 28),
-                SizedBox(width: 10),
-                Text(
+                const Icon(Icons.auto_awesome, color: Color(0xFFFFB03B), size: 28),
+                const SizedBox(width: 10),
+                const Text(
                   'Asistente IA Snap',
                   style: TextStyle(
                     color: Color(0xFFFFFAF3),
                     fontSize: 28,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -1,
+                  ),
+                ),
+                const Spacer(),
+                OutlinedButton.icon(
+                  onPressed: _openConnectAiDialog,
+                  icon: const Icon(Icons.link, color: Color(0xFFFFB03B), size: 16),
+                  label: const Text(
+                    'Conectar IA',
+                    style: TextStyle(color: Color(0xFFFFB03B), fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFEA7424)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ],
@@ -2511,7 +2715,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFF21120E),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white.withOpacity(0.08)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
@@ -2562,7 +2766,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         ),
                         border: msg.isUser
                             ? null
-                            : Border.all(color: Colors.white.withOpacity(0.08)),
+                            : Border.all(color: Colors.white.withValues(alpha: 0.08)),
                       ),
                       child: Text(
                         msg.text,
@@ -2587,7 +2791,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Pregunta sobre tus cartas...',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                       filled: true,
                       fillColor: const Color(0xFF21120E),
                       border: OutlineInputBorder(
@@ -2650,6 +2854,10 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   UserModel? currentUser;
+  String? userAvatarBase64;
+  int totalCardsCount = 0;
+  double totalCollectionValue = 0.0;
+  int completionPercentage = 0;
   bool isLoading = true;
 
   @override
@@ -2660,21 +2868,145 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final savedUser = await ApiService.getSavedUser();
+    String? avatar;
+    if (savedUser != null) {
+      avatar = await ApiService.getUserAvatar(savedUser.id);
+    }
     if (mounted) {
       setState(() {
         currentUser = savedUser;
+        userAvatarBase64 = avatar;
         isLoading = false;
       });
     }
 
     try {
       final userFromApi = await ApiService.getProfile();
+      final avatarFromApi = await ApiService.getUserAvatar(userFromApi.id);
+
+      List<CardItem> normalCards = [];
+      List<TcgdexCard> tcgdexCards = [];
+      try {
+        normalCards = await ApiService.getUserCollection();
+      } catch (_) {}
+      try {
+        tcgdexCards = await ApiService.getTcgdexCollection();
+      } catch (_) {}
+
+      final count = normalCards.length + tcgdexCards.length;
+      final totalVal = normalCards.fold(0.0, (sum, item) => sum + item.price);
+      final percentage = (count / 100 * 100).clamp(0, 100).toInt();
+
       if (mounted) {
         setState(() {
           currentUser = userFromApi;
+          userAvatarBase64 = avatarFromApi;
+          totalCardsCount = count;
+          totalCollectionValue = totalVal;
+          completionPercentage = percentage;
         });
       }
     } catch (_) {}
+  }
+
+  Future<void> _pickAvatarImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: source,
+      maxWidth: 600,
+      maxHeight: 600,
+      imageQuality: 85,
+    );
+
+    if (pickedFile == null || currentUser == null) return;
+
+    final bytes = await pickedFile.readAsBytes();
+    final base64String = base64Encode(bytes);
+
+    await ApiService.saveUserAvatar(currentUser!.id, base64String);
+
+    if (mounted) {
+      setState(() {
+        userAvatarBase64 = base64String;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Foto de perfil actualizada con éxito!'),
+          backgroundColor: Color(0xFFEA7424),
+        ),
+      );
+    }
+  }
+
+  void _showAvatarOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF21120E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Cambiar Foto de Perfil',
+                style: TextStyle(
+                  color: Color(0xFFFFFAF3),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Color(0xFFFFA33B)),
+                title: const Text('Tomar Foto', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAvatarImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Color(0xFFFFA33B)),
+                title: const Text('Elegir de la Galería', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAvatarImage(ImageSource.gallery);
+                },
+              ),
+              if (userAvatarBase64 != null)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  title: const Text('Eliminar foto', style: TextStyle(color: Colors.redAccent)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    if (currentUser != null) {
+                      await ApiService.removeUserAvatar(currentUser!.id);
+                      if (mounted) {
+                        setState(() {
+                          userAvatarBase64 = null;
+                        });
+                      }
+                    }
+                  },
+                ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _handleLogout() async {
@@ -2706,13 +3038,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   SwitchListTile(
                     title: const Text('Notificaciones push', style: TextStyle(color: Colors.white)),
                     value: pushNotif,
-                    activeColor: const Color(0xFFEA7424),
+                    activeThumbColor: const Color(0xFFEA7424),
                     onChanged: (val) => setDialogState(() => pushNotif = val),
                   ),
                   SwitchListTile(
                     title: const Text('Alertas de precios de cartas', style: TextStyle(color: Colors.white)),
                     value: priceAlerts,
-                    activeColor: const Color(0xFFEA7424),
+                    activeThumbColor: const Color(0xFFEA7424),
                     onChanged: (val) => setDialogState(() => priceAlerts = val),
                   ),
                 ],
@@ -2734,24 +3066,110 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF21120E),
-          title: const Text('Apariencia', style: TextStyle(color: Color(0xFFFFFAF3))),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.dark_mode, color: Color(0xFFFFB03B)),
-                title: Text('Modo Oscuro (Activo)', style: TextStyle(color: Colors.white)),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final currentTheme = appThemeNotifier.value;
+            bool isDark = currentTheme.isDarkMode;
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF21120E),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text(
+                'Apariencia',
+                style: TextStyle(color: Color(0xFFFFFAF3), fontWeight: FontWeight.bold),
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Aceptar', style: TextStyle(color: Color(0xFFFFB03B))),
-            ),
-          ],
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'SELECCIONA EL MODO DE TEMA',
+                    style: TextStyle(color: Color(0xFFFFC564), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () {
+                            setDialogState(() {
+                              isDark = true;
+                            });
+                            final updated = currentTheme.copyWith(isDarkMode: true);
+                            appThemeNotifier.value = updated;
+                            ApiService.updateSettings(darkMode: true);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFFEA7424) : const Color(0xFF160B08),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isDark ? const Color(0xFFEA7424) : Colors.white24,
+                                width: 2,
+                              ),
+                            ),
+                            child: const Column(
+                              children: [
+                                Icon(Icons.dark_mode_rounded, color: Colors.white, size: 28),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Modo Oscuro',
+                                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () {
+                            setDialogState(() {
+                              isDark = false;
+                            });
+                            final updated = currentTheme.copyWith(isDarkMode: false);
+                            appThemeNotifier.value = updated;
+                            ApiService.updateSettings(darkMode: false);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              color: !isDark ? const Color(0xFFEA7424) : const Color(0xFF160B08),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: !isDark ? const Color(0xFFEA7424) : Colors.white24,
+                                width: 2,
+                              ),
+                            ),
+                            child: const Column(
+                              children: [
+                                Icon(Icons.light_mode_rounded, color: Colors.white, size: 28),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Modo Claro',
+                                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Aceptar', style: TextStyle(color: Color(0xFFFFA33B))),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -2783,7 +3201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Escribe tu mensaje...',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                       filled: true,
                       fillColor: const Color(0xFF160B08),
                       border: OutlineInputBorder(
@@ -2893,27 +3311,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
           AppHeader(),
           const SizedBox(height: 32),
           Center(
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFFFF9A31),
-                    Color(0xFFC84217),
-                  ],
+            child: Stack(
+              children: [
+                GestureDetector(
+                  onTap: _showAvatarOptions,
+                  child: Container(
+                    width: 104,
+                    height: 104,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFFFF9A31),
+                          Color(0xFFC84217),
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        width: 3,
+                      ),
+                      image: userAvatarBase64 != null
+                          ? DecorationImage(
+                              image: MemoryImage(base64Decode(userAvatarBase64!)),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: userAvatarBase64 == null
+                        ? const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 54,
+                          )
+                        : null,
+                  ),
                 ),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.7),
-                  width: 3,
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: _showAvatarOptions,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEA7424),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black45,
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              child: const Icon(
-                Icons.person,
-                color: Colors.white,
-                size: 54,
-              ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -2936,25 +3394,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 28),
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: ProfileStat(
-                  value: '6',
+                  value: '$totalCardsCount',
                   label: 'Cartas',
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: ProfileStat(
-                  value: '\$801',
+                  value: '\$${totalCollectionValue.toStringAsFixed(0)}',
                   label: 'Valor total',
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: ProfileStat(
-                  value: '5%',
+                  value: '$completionPercentage%',
                   label: 'Completado',
                 ),
               ),
@@ -3056,7 +3514,7 @@ class ProfileStat extends StatelessWidget {
         color: const Color(0xFF21120E),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withValues(alpha: 0.08),
         ),
       ),
       child: Column(
@@ -3138,6 +3596,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController nameController;
   late final TextEditingController emailController;
+  String? userAvatarBase64;
   bool isLoading = false;
 
   @override
@@ -3145,6 +3604,118 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     nameController = TextEditingController(text: widget.user?.name ?? '');
     emailController = TextEditingController(text: widget.user?.email ?? '');
+    _loadAvatar();
+  }
+
+  Future<void> _loadAvatar() async {
+    if (widget.user != null) {
+      final avatar = await ApiService.getUserAvatar(widget.user!.id);
+      if (mounted) {
+        setState(() {
+          userAvatarBase64 = avatar;
+        });
+      }
+    }
+  }
+
+  Future<void> _pickAvatarImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: source,
+      maxWidth: 600,
+      maxHeight: 600,
+      imageQuality: 85,
+    );
+
+    if (pickedFile == null || widget.user == null) return;
+
+    final bytes = await pickedFile.readAsBytes();
+    final base64String = base64Encode(bytes);
+
+    await ApiService.saveUserAvatar(widget.user!.id, base64String);
+
+    if (mounted) {
+      setState(() {
+        userAvatarBase64 = base64String;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Foto de perfil actualizada!'),
+          backgroundColor: Color(0xFFEA7424),
+        ),
+      );
+    }
+  }
+
+  void _showAvatarOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF21120E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Cambiar Foto de Perfil',
+                style: TextStyle(
+                  color: Color(0xFFFFFAF3),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: Color(0xFFFFA33B)),
+                title: const Text('Tomar Foto', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAvatarImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: Color(0xFFFFA33B)),
+                title: const Text('Elegir de la Galería', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAvatarImage(ImageSource.gallery);
+                },
+              ),
+              if (userAvatarBase64 != null)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  title: const Text('Eliminar foto', style: TextStyle(color: Colors.redAccent)),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    if (widget.user != null) {
+                      await ApiService.removeUserAvatar(widget.user!.id);
+                      if (mounted) {
+                        setState(() {
+                          userAvatarBase64 = null;
+                        });
+                      }
+                    }
+                  },
+                ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -3210,11 +3781,76 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         iconTheme: const IconThemeData(color: Color(0xFFFFFAF3)),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Stack(
+                  children: [
+                    GestureDetector(
+                      onTap: _showAvatarOptions,
+                      child: Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFFFF9A31),
+                              Color(0xFFC84217),
+                            ],
+                          ),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            width: 3,
+                          ),
+                          image: userAvatarBase64 != null
+                              ? DecorationImage(
+                                  image: MemoryImage(base64Decode(userAvatarBase64!)),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: userAvatarBase64 == null
+                            ? const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 48,
+                              )
+                            : null,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: _showAvatarOptions,
+                        child: Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFEA7424),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black45,
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
               const Text(
                 'ACTUALIZA TUS DATOS',
                 style: TextStyle(
@@ -3224,13 +3860,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               TextField(
                 controller: nameController,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'Nombre de Coleccionista',
-                  labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                  labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                   filled: true,
                   fillColor: const Color(0xFF22110C),
                   border: OutlineInputBorder(
@@ -3246,7 +3882,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'Correo electrónico',
-                  labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                  labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                   filled: true,
                   fillColor: const Color(0xFF22110C),
                   border: OutlineInputBorder(
@@ -3375,7 +4011,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
             card.imageUrl,
             height: 330,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const Icon(
+            errorBuilder: (_, _, _) => const Icon(
               Icons.image_not_supported,
               color: Colors.white54,
               size: 80,

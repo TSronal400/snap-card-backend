@@ -312,9 +312,19 @@ class ApiService {
 
   /// Consultar al Asistente IA (POST /ai/chat)
   static Future<String> askAI(String message) async {
+    final prefs = await SharedPreferences.getInstance();
+    final customKey = prefs.getString('snapcard_custom_gemini_key') ?? '';
+
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+    };
+    if (customKey.isNotEmpty) {
+      headers['x-custom-gemini-key'] = customKey;
+    }
+
     final response = await http.post(
       Uri.parse('$baseUrl/ai/chat'),
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: jsonEncode({'message': message.trim()}),
     );
 
@@ -324,7 +334,16 @@ class ApiService {
       return data['reply'] as String? ??
           'No pude procesar tu consulta';
     } else {
-      throw ApiException('Error al consultar al asistente IA');
+      dynamic data;
+      try {
+        data = jsonDecode(response.body);
+      } catch (_) {
+        data = null;
+      }
+      final detail = data is Map && data.containsKey('detail')
+          ? data['detail'].toString()
+          : 'Error al consultar al asistente IA';
+      throw ApiException(detail);
     }
   }
 
@@ -735,6 +754,66 @@ class ApiService {
           'Aplicación profesional para coleccionistas de cartas TCG.',
       'developer': 'Equipo Snap Card & Ronal',
     };
+  }
+
+  /// Guardar foto de perfil localmente en SharedPreferences
+  static Future<void> saveUserAvatar(int userId, String base64Image) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('snapcard_avatar_$userId', base64Image);
+  }
+
+  /// Obtener foto de perfil localmente de SharedPreferences
+  static Future<String?> getUserAvatar(int userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('snapcard_avatar_$userId');
+  }
+
+  /// Eliminar foto de perfil localmente
+  static Future<void> removeUserAvatar(int userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('snapcard_avatar_$userId');
+  }
+
+  /// Actualizar configuración de apariencia (PUT /settings)
+  static Future<void> updateSettings({
+    bool? darkMode,
+    String? themeColor,
+    bool? notificationsEnabled,
+    bool? priceAlertsEnabled,
+  }) async {
+    final token = await getToken();
+    if (token != null) {
+      try {
+        final body = <String, dynamic>{};
+        if (darkMode != null) body['dark_mode'] = darkMode;
+        if (themeColor != null) body['theme_color'] = themeColor;
+        if (notificationsEnabled != null) body['notifications_enabled'] = notificationsEnabled;
+        if (priceAlertsEnabled != null) body['price_alerts_enabled'] = priceAlertsEnabled;
+
+        await http.put(
+          Uri.parse('$baseUrl/settings'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(body),
+        );
+      } catch (_) {}
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    if (darkMode != null) await prefs.setBool('snapcard_dark_mode', darkMode);
+    if (themeColor != null) await prefs.setString('snapcard_theme_color', themeColor);
+  }
+
+  static Future<bool> getDarkMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('snapcard_dark_mode') ?? true;
+  }
+
+  static Future<String> getThemeColor() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('snapcard_theme_color') ?? 'orange';
   }
 }
 
