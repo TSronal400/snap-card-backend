@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'models/tcgdex_card.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,6 +12,43 @@ import 'dart:async';
 
 void main() {
   runApp(const SnapCardApp());
+}
+
+Widget buildCardImage(String imageUrl, IconData fallbackIcon, {double? height, BoxFit fit = BoxFit.contain}) {
+  if (imageUrl.isEmpty) {
+    return Icon(fallbackIcon, size: height ?? 52, color: Colors.white70);
+  }
+
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return Image.network(
+      imageUrl,
+      height: height,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) {
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_download_outlined, size: 32, color: Colors.white70),
+            const SizedBox(height: 4),
+            const Text(
+              'Descargar imagen',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.bold),
+            ),
+          ],
+        );
+      },
+    );
+  } else {
+    return Image.file(
+      File(imageUrl),
+      height: height,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) {
+        return Icon(fallbackIcon, size: height ?? 52, color: Colors.white70);
+      },
+    );
+  }
 }
 
 // URL RAW exacta de tu repositorio de GitHub
@@ -1442,10 +1480,25 @@ else
                                                     error,
                                                     stackTrace,
                                                   ) {
-                                                    return Icon(
-                                                      icon,
-                                                      size: 52,
-                                                      color: Colors.white,
+                                                    return Column(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        const Icon(
+                                                          Icons.cloud_download_outlined,
+                                                          size: 32,
+                                                          color: Colors.white70,
+                                                        ),
+                                                        const SizedBox(height: 4),
+                                                        const Text(
+                                                          'Descargar imagen',
+                                                          textAlign: TextAlign.center,
+                                                          style: TextStyle(
+                                                            color: Colors.white70,
+                                                            fontSize: 9,
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ],
                                                     );
                                                   },
                                                 )
@@ -2432,11 +2485,25 @@ class _SearchScreenState extends State<SearchScreen> {
                                                       fit: BoxFit.contain,
                                                       errorBuilder:
                                                           (_, _, _) {
-                                                        return const Icon(
-                                                          Icons
-                                                              .image_not_supported,
-                                                          color: Colors.white54,
-                                                          size: 45,
+                                                        return Column(
+                                                          mainAxisAlignment: MainAxisAlignment.center,
+                                                          children: [
+                                                            const Icon(
+                                                              Icons.cloud_download_outlined,
+                                                              size: 32,
+                                                              color: Colors.white70,
+                                                            ),
+                                                            const SizedBox(height: 4),
+                                                            const Text(
+                                                              'Descargar imagen',
+                                                              textAlign: TextAlign.center,
+                                                              style: TextStyle(
+                                                                color: Colors.white70,
+                                                                fontSize: 9,
+                                                                fontWeight: FontWeight.bold,
+                                                              ),
+                                                            ),
+                                                          ],
                                                         );
                                                       },
                                                     )
