@@ -2881,6 +2881,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     try {
+      // Sincronizar precios con el mercado en tiempo real al validar inicio de sesión
+      await ApiService.syncCollectionPrices();
+
       final userFromApi = await ApiService.getProfile();
       final avatarFromApi = await ApiService.getUserAvatar(userFromApi.id);
 

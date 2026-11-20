@@ -578,6 +578,21 @@ class ApiService {
     );
   }
 
+  /// Sincronizar precios de la colección con el mercado en tiempo real
+  static Future<void> syncCollectionPrices() async {
+    final token = await getToken();
+    if (token == null) return;
+    try {
+      await http.post(
+        Uri.parse('$baseUrl/collection/sync-prices'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+    } catch (_) {}
+  }
+
   /// Eliminar carta TCGdex de la colección
   static Future<String> removeTcgdexCardFromCollection(
     String cardId,
