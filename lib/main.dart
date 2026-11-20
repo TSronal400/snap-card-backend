@@ -1403,7 +1403,9 @@ else
                                     );
 
                               final String priceText = isTcgdex
-                                  ? 'Por calcular'
+                                  ? (card.price != null && card.price! > 0
+                                      ? 'RD\$${card.price!.toStringAsFixed(0)}'
+                                      : 'Precio no disp.')
                                   : '\$${card.price.toStringAsFixed(0)}';
 
                               final String imageUrl = card.imageUrl;

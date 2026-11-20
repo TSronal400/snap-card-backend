@@ -14,6 +14,7 @@ class TcgdexCard {
   final List<String> types;
   final String stage;
   final String illustrator;
+  final double? price;
 
   TcgdexCard({
     required this.id,
@@ -28,6 +29,7 @@ class TcgdexCard {
     this.types = const [],
     this.stage = '',
     this.illustrator = '',
+    this.price,
   });
 
   factory TcgdexCard.fromJson(Map<String, dynamic> json) {
@@ -73,6 +75,7 @@ class TcgdexCard {
       types: parsedTypes,
       stage: json['stage']?.toString() ?? '',
       illustrator: json['illustrator']?.toString() ?? '',
+      price: (json['price'] as num?)?.toDouble(),
     );
   }
 }
