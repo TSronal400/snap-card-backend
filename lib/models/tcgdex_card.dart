@@ -14,6 +14,7 @@ class TcgdexCard {
   final List<String> types;
   final String stage;
   final String illustrator;
+  final double? price;
 
   TcgdexCard({
     required this.id,
@@ -28,18 +29,22 @@ class TcgdexCard {
     this.types = const [],
     this.stage = '',
     this.illustrator = '',
+    this.price,
   });
 
   factory TcgdexCard.fromJson(Map<String, dynamic> json) {
+    final id = json['id']?.toString() ?? '';
     final image = json['image']?.toString() ?? '';
     final rawTypes = json['types'];
 
-    const fallbackImage = 'https://images.pokemontcg.io/base1/4_hires.png';
-    final resolvedImage = image.isEmpty
-        ? fallbackImage
-        : image.startsWith('http')
-            ? image
-            : '$image/high.png';
+    String resolvedImage = image.trim();
+    if (resolvedImage.isEmpty && id.isNotEmpty) {
+      resolvedImage = 'https://assets.tcgdex.net/es/$id/high.png';
+    } else if (resolvedImage.isEmpty) {
+      resolvedImage = 'https://product-images.tcgplayer.com/fit-in/400x400/placeholder.jpg';
+    } else if (!resolvedImage.startsWith('http')) {
+      resolvedImage = '$resolvedImage/high.png';
+    }
 
     List<String> parsedTypes = [];
     if (rawTypes is List) {
@@ -58,7 +63,7 @@ class TcgdexCard {
     }
 
     return TcgdexCard(
-      id: json['id']?.toString() ?? '',
+      id: id,
       name: json['name']?.toString() ?? 'Carta Pokémon',
       imageUrl: resolvedImage,
       category: json['category']?.toString() ?? 'Pokémon',
@@ -70,6 +75,7 @@ class TcgdexCard {
       types: parsedTypes,
       stage: json['stage']?.toString() ?? '',
       illustrator: json['illustrator']?.toString() ?? '',
+      price: (json['price'] as num?)?.toDouble(),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'models/tcgdex_card.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,6 +12,97 @@ import 'dart:async';
 
 void main() {
   runApp(const SnapCardApp());
+}
+
+class NetworkImageWithRetry extends StatefulWidget {
+  final String imageUrl;
+  final double? height;
+  final BoxFit fit;
+  final IconData fallbackIcon;
+
+  const NetworkImageWithRetry({
+    super.key,
+    required this.imageUrl,
+    this.height,
+    this.fit = BoxFit.contain,
+    this.fallbackIcon = Icons.style,
+  });
+
+  @override
+  State<NetworkImageWithRetry> createState() => _NetworkImageWithRetryState();
+}
+
+class _NetworkImageWithRetryState extends State<NetworkImageWithRetry> {
+  Key _imageKey = UniqueKey();
+
+  void _retry() {
+    setState(() {
+      _imageKey = UniqueKey();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.imageUrl.isEmpty) {
+      return Icon(widget.fallbackIcon, size: widget.height ?? 52, color: Colors.white70);
+    }
+
+    if (widget.imageUrl.startsWith('http://') || widget.imageUrl.startsWith('https://')) {
+      return Image.network(
+        widget.imageUrl,
+        key: _imageKey,
+        height: widget.height,
+        fit: widget.fit,
+        errorBuilder: (context, error, stackTrace) {
+          return InkWell(
+            onTap: _retry,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.refresh,
+                    size: 28,
+                    color: Color(0xFFFFB13B),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Tocar para descargar',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFFFFB13B),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      return Image.file(
+        File(widget.imageUrl),
+        key: _imageKey,
+        height: widget.height,
+        fit: widget.fit,
+        errorBuilder: (context, error, stackTrace) {
+          return Icon(widget.fallbackIcon, size: widget.height ?? 52, color: Colors.white70);
+        },
+      );
+    }
+  }
+}
+
+Widget buildCardImage(String imageUrl, IconData fallbackIcon, {double? height, BoxFit fit = BoxFit.contain}) {
+  return NetworkImageWithRetry(
+    imageUrl: imageUrl,
+    height: height,
+    fit: fit,
+    fallbackIcon: fallbackIcon,
+  );
 }
 
 // URL RAW exacta de tu repositorio de GitHub
@@ -1365,7 +1457,9 @@ else
                                     );
 
                               final String priceText = isTcgdex
-                                  ? 'Por calcular'
+                                  ? (card.price != null && card.price! > 0
+                                      ? 'RD\$${card.price!.toStringAsFixed(0)}'
+                                      : 'Precio no disp.')
                                   : '\$${card.price.toStringAsFixed(0)}';
 
                               final String imageUrl = card.imageUrl;
@@ -1442,10 +1536,25 @@ else
                                                     error,
                                                     stackTrace,
                                                   ) {
-                                                    return Icon(
-                                                      icon,
-                                                      size: 52,
-                                                      color: Colors.white,
+                                                    return Column(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        const Icon(
+                                                          Icons.cloud_download_outlined,
+                                                          size: 32,
+                                                          color: Colors.white70,
+                                                        ),
+                                                        const SizedBox(height: 4),
+                                                        const Text(
+                                                          'Descargar imagen',
+                                                          textAlign: TextAlign.center,
+                                                          style: TextStyle(
+                                                            color: Colors.white70,
+                                                            fontSize: 9,
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ],
                                                     );
                                                   },
                                                 )
@@ -2432,11 +2541,25 @@ class _SearchScreenState extends State<SearchScreen> {
                                                       fit: BoxFit.contain,
                                                       errorBuilder:
                                                           (_, _, _) {
-                                                        return const Icon(
-                                                          Icons
-                                                              .image_not_supported,
-                                                          color: Colors.white54,
-                                                          size: 45,
+                                                        return Column(
+                                                          mainAxisAlignment: MainAxisAlignment.center,
+                                                          children: [
+                                                            const Icon(
+                                                              Icons.cloud_download_outlined,
+                                                              size: 32,
+                                                              color: Colors.white70,
+                                                            ),
+                                                            const SizedBox(height: 4),
+                                                            const Text(
+                                                              'Descargar imagen',
+                                                              textAlign: TextAlign.center,
+                                                              style: TextStyle(
+                                                                color: Colors.white70,
+                                                                fontSize: 9,
+                                                                fontWeight: FontWeight.bold,
+                                                              ),
+                                                            ),
+                                                          ],
                                                         );
                                                       },
                                                     )
@@ -2881,6 +3004,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     try {
+      // Sincronizar precios con el mercado en tiempo real al validar inicio de sesión
+      await ApiService.syncCollectionPrices();
+
       final userFromApi = await ApiService.getProfile();
       final avatarFromApi = await ApiService.getUserAvatar(userFromApi.id);
 

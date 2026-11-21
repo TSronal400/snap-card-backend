@@ -140,6 +140,42 @@ def get_tcgdex_collection(
     return [dict(row) for row in result.mappings().all()]
 
 
+@router.post("/sync-prices")
+def sync_collection_prices(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    items = db.scalars(
+        select(TcgdexUserCollection).where(TcgdexUserCollection.user_id == user.id)
+    ).all()
+
+    updated_count = 0
+    for item in items:
+        try:
+            details = get_tcgdex_card_details(item.tcgdex_card_id)
+            pricing = details.get("pricing") or {}
+            cardmarket = pricing.get("cardmarket") or {}
+            price = cardmarket.get("avg")
+
+            if price is None:
+                for variant in details.get("variants_detailed") or []:
+                    variant_pricing = variant.get("pricing") or {}
+                    variant_cardmarket = variant_pricing.get("cardmarket") or {}
+                    price = variant_cardmarket.get("avg")
+                    if price is not None:
+                        break
+
+            if price is not None:
+                price = convert_eur_to_dop(price)
+                item.price = price
+                updated_count += 1
+        except Exception as e:
+            print(f"Error sincronizando precio para {item.tcgdex_card_id}: {e}")
+
+    db.commit()
+    return {"message": f"Precios sincronizados con éxito. {updated_count} cartas actualizadas."}
+
+
 @router.post("/tcgdex/add", status_code=status.HTTP_201_CREATED)
 def add_tcgdex_card(
     data: dict,
