@@ -35,10 +35,14 @@ class TcgdexCard {
   factory TcgdexCard.fromJson(Map<String, dynamic> json) {
     final id = json['id']?.toString() ?? '';
     final image = json['image']?.toString() ?? '';
+    final setId = json['set_id']?.toString()?.toLowerCase() ?? '';
+    final localId = json['local_id']?.toString() ?? '';
     final rawTypes = json['types'];
 
     String resolvedImage = image.trim();
-    if (resolvedImage.isEmpty && id.isNotEmpty) {
+    if (resolvedImage.isEmpty && setId.isNotEmpty && localId.isNotEmpty) {
+      resolvedImage = 'https://images.pokemontcg.io/$setId/${localId}_hires.png';
+    } else if (resolvedImage.isEmpty && id.isNotEmpty) {
       resolvedImage = 'https://assets.tcgdex.net/es/$id/high.png';
     } else if (resolvedImage.isEmpty) {
       resolvedImage = 'https://product-images.tcgplayer.com/fit-in/400x400/placeholder.jpg';

@@ -53,6 +53,7 @@ class _NetworkImageWithRetryState extends State<NetworkImageWithRetry> {
         key: _imageKey,
         height: widget.height,
         fit: widget.fit,
+        headers: const {'User-Agent': 'SnapCard/1.0'},
         errorBuilder: (context, error, stackTrace) {
           return InkWell(
             onTap: _retry,
@@ -894,9 +895,17 @@ class _CollectionScreenState extends State<CollectionScreen> {
     }
   }
 
-  double get totalPrice => collection
-      .whereType<CardItem>()
-      .fold<double>(0, (sum, card) => sum + card.price);
+  double get totalPrice {
+    double sum = 0;
+    for (final card in collection) {
+      if (card is CardItem) {
+        sum += card.price;
+      } else if (card is TcgdexCard && card.price != null) {
+        sum += card.price!;
+      }
+    }
+    return sum;
+  }
 
 void _showCardDetails(dynamic card) {
   final bool isTcgdex = card is TcgdexCard;
@@ -3020,7 +3029,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       } catch (_) {}
 
       final count = normalCards.length + tcgdexCards.length;
-      final totalVal = normalCards.fold(0.0, (sum, item) => sum + item.price);
+      final valNorm = normalCards.fold(0.0, (sum, item) => sum + item.price);
+      final valTcg = tcgdexCards.fold(0.0, (sum, item) => sum + (item.price ?? 0.0));
+      final totalVal = valNorm + valTcg;
       final percentage = (count / 100 * 100).clamp(0, 100).toInt();
 
       if (mounted) {
@@ -3434,7 +3445,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 30),
         children: [
-          AppHeader(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(child: AppHeader()),
+              IconButton(
+                onPressed: _loadProfile,
+                icon: const Icon(Icons.refresh, color: Color(0xFFFFB13B)),
+                tooltip: 'Actualizar perfil y colección',
+              ),
+            ],
+          ),
           const SizedBox(height: 32),
           Center(
             child: Stack(
