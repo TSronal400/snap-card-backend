@@ -266,12 +266,18 @@ class ApiService {
 
   /// Buscar cartas directamente en TCGdex
   static Future<List<TcgdexCard>> searchTcgdexCards(
-    String query,
-  ) async {
+    String query, {
+    String? category,
+  }) async {
+    final params = {'q': query.trim()};
+    if (category != null && category.trim().isNotEmpty && category != 'Todas') {
+      params['category'] = category.trim();
+    }
+
     final uri = Uri.parse(
       '$baseUrl/cards/tcgdex/search',
     ).replace(
-      queryParameters: {'q': query.trim()},
+      queryParameters: params,
     );
 
     final response = await http.get(

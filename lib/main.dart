@@ -44,6 +44,20 @@ class _NetworkImageWithRetryState extends State<NetworkImageWithRetry> {
     if (widget.alternativeImages != null) {
       list.addAll(widget.alternativeImages!);
     }
+    
+    // Generar rutas dinámicas adicionales sobre la marcha para promos y cartas sin rareza
+    for (final u in list.toList()) {
+      if (u.contains('/high.png')) {
+        list.add(u.replaceFirst('/high.png', '/low.png'));
+      }
+      if (u.contains('/es/')) {
+        list.add(u.replaceFirst('/es/', '/en/'));
+      }
+      if (u.contains('-')) {
+        list.add(u.replaceAll('-', '/'));
+      }
+    }
+
     return list.toSet().toList();
   }
 
@@ -89,10 +103,20 @@ class _NetworkImageWithRetryState extends State<NetworkImageWithRetry> {
             return const SizedBox.shrink();
           }
 
-          return InkWell(
-            onTap: _retry,
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              _retry();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Reintentando descargar imagen...'),
+                  duration: Duration(seconds: 1),
+                  backgroundColor: Color(0xFFEA7424),
+                ),
+              );
+            },
             child: Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -139,6 +163,38 @@ Widget buildCardImage(String imageUrl, IconData fallbackIcon, {double? height, B
     fit: fit,
     fallbackIcon: fallbackIcon,
   );
+}
+
+List<TcgdexCard> analyzeAndFixCollectionImages(List<TcgdexCard> cards) {
+  return cards.map((card) {
+    if (card.imageUrl.isEmpty || card.imageUrl.contains('placeholder')) {
+      final cleanedId = card.id.toLowerCase().trim();
+      final alternativeUrl = cleanedId.contains('-')
+          ? 'https://assets.tcgdex.net/es/${cleanedId.replaceAll("-", "/")}/high.png'
+          : 'https://assets.tcgdex.net/es/$cleanedId/high.png';
+
+      return TcgdexCard(
+        id: card.id,
+        name: card.name,
+        imageUrl: alternativeUrl,
+        alternativeImages: [
+          ...card.alternativeImages,
+          'https://images.pokemontcg.io/base1/4_hires.png',
+        ],
+        category: card.category,
+        rarity: card.rarity,
+        localId: card.localId,
+        setId: card.setId,
+        setName: card.setName,
+        hp: card.hp,
+        types: card.types,
+        stage: card.stage,
+        illustrator: card.illustrator,
+        price: card.price,
+      );
+    }
+    return card;
+  }).toList();
 }
 
 // URL RAW exacta de tu repositorio de GitHub
@@ -923,8 +979,8 @@ class _CollectionScreenState extends State<CollectionScreen> {
 
     if (mounted) {
       setState(() {
-        collection = [...normalCards, ...tcgdexCards];
-        wishlist = wishlistCards;
+        collection = [...normalCards, ...analyzeAndFixCollectionImages(tcgdexCards)];
+        wishlist = analyzeAndFixCollectionImages(wishlistCards);
         isLoading = false;
       });
     }
@@ -2308,14 +2364,18 @@ class _SearchScreenState extends State<SearchScreen> {
     });
 
     try {
-      final results = await ApiService.searchTcgdexCards(query);
+      final results = await ApiService.searchTcgdexCards(
+        query,
+        category: selectedCategory,
+      );
+      final fixedResults = analyzeAndFixCollectionImages(results);
 
       if (mounted) {
         setState(() {
-          searchResults = results;
+          searchResults = fixedResults;
           isLoading = false;
         });
-        _precacheImages(results);
+        _precacheImages(fixedResults);
       }
     } catch (e) {
       if (mounted) {
@@ -2324,23 +2384,6 @@ class _SearchScreenState extends State<SearchScreen> {
           isLoading = false;
         });
       }
-    }
-  }
-
-  IconData _getElementIcon(String elementType) {
-    switch (elementType.toLowerCase()) {
-      case 'fuego':
-        return Icons.local_fire_department;
-      case 'agua':
-        return Icons.water_drop;
-      case 'planta':
-        return Icons.forest;
-      case 'electrico':
-        return Icons.bolt;
-      case 'psiquico':
-        return Icons.auto_awesome;
-      default:
-        return Icons.style;
     }
   }
 

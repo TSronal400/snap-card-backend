@@ -36,11 +36,11 @@ class TcgdexCard {
   factory TcgdexCard.fromJson(Map<String, dynamic> json) {
     final id = json['id']?.toString() ?? '';
     final image = json['image']?.toString() ?? '';
-    final setId = json['set_id']?.toString()?.toLowerCase() ?? '';
+    final setId = (json['set_id'] as String?)?.toLowerCase() ?? '';
     final localId = json['local_id']?.toString() ?? '';
     final rawTypes = json['types'];
 
-    // 1. PRIMARIA: Mantener estrictamente el orden original que SÍ funcionaba
+    // 1. PRIMARIA: Mantener exactamente la ruta original de la base de datos que funcionaba para la mayoría
     String primaryImage = '';
     if (image.trim().isNotEmpty) {
       String img = image.trim();
@@ -55,18 +55,31 @@ class TcgdexCard {
       primaryImage = 'https://product-images.tcgplayer.com/fit-in/400x400/placeholder.jpg';
     }
 
-    // 2. ALTERNATIVAS: Rutas de respaldo por si la primaria falla
+    // 2. ALTERNATIVAS ROBUSTAS: Combinar AMBAS (es y en), alta y baja resolución para que ninguna se quede sin cargar
     final List<String> altImages = [];
+
+    if (id.isNotEmpty) {
+      altImages.add('https://assets.tcgdex.net/es/$id/high.png');
+      altImages.add('https://assets.tcgdex.net/en/$id/high.png');
+      altImages.add('https://assets.tcgdex.net/es/$id/low.png');
+      altImages.add('https://assets.tcgdex.net/en/$id/low.png');
+    }
+
+    String sId = setId;
+    String lId = localId;
     if (id.contains('-')) {
       final parts = id.split('-');
-      final sId = parts[0];
-      final lId = parts.sublist(1).join('-');
+      if (sId.isEmpty) sId = parts[0];
+      if (lId.isEmpty) lId = parts.sublist(1).join('-');
+    }
+
+    if (sId.isNotEmpty && lId.isNotEmpty) {
       altImages.add('https://assets.tcgdex.net/es/$sId/$lId/high.png');
+      altImages.add('https://assets.tcgdex.net/en/$sId/$lId/high.png');
+      altImages.add('https://images.pokemontcg.io/$sId/${lId}_hires.png');
+      altImages.add('https://images.pokemontcg.io/$sId/$lId.png');
     }
-    if (setId.isNotEmpty && localId.isNotEmpty) {
-      altImages.add('https://images.pokemontcg.io/$setId/${localId}_hires.png');
-      altImages.add('https://images.pokemontcg.io/$setId/$localId.png');
-    }
+
     altImages.add('https://product-images.tcgplayer.com/fit-in/400x400/placeholder.jpg');
 
     final fallbackList = altImages.where((url) => url != primaryImage).toSet().toList();

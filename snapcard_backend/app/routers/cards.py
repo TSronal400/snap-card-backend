@@ -15,11 +15,21 @@ router = APIRouter(prefix="/cards", tags=["Cartas"])
 @router.get("/tcgdex/search")
 def search_external_cards(
     q: str = Query(..., min_length=1),
+    category: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     search_term = f"%{q.strip()}%"
 
-    query = text("""
+    where_clauses = ["(name ILIKE :term OR id ILIKE :term OR set_name ILIKE :term)"]
+    params = {"term": search_term}
+
+    if category and category.strip() and category.lower() != "todas":
+        where_clauses.append("category ILIKE :category")
+        params["category"] = f"%{category.strip()}%"
+
+    where_str = " AND ".join(where_clauses)
+
+    query = text(f"""
         SELECT
             id,
             name,
@@ -34,10 +44,7 @@ def search_external_cards(
             stage,
             illustrator
         FROM public.tcgdex_cards
-       WHERE
-    name ILIKE :term
-    OR id ILIKE :term
-    OR set_name ILIKE :term
+       WHERE {where_str}
 ORDER BY
     CASE
         WHEN name ILIKE :term THEN 0
@@ -49,7 +56,7 @@ LIMIT 50
 
     results = db.execute(
         query,
-        {"term": search_term}
+        params
     ).mappings().all()
 
     return [dict(card) for card in results]
