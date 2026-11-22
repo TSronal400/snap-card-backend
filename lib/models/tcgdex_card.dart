@@ -39,15 +39,18 @@ class TcgdexCard {
     final localId = json['local_id']?.toString() ?? '';
     final rawTypes = json['types'];
 
-    String resolvedImage = image.trim();
-    if (resolvedImage.isEmpty && setId.isNotEmpty && localId.isNotEmpty) {
+    String resolvedImage = '';
+    if (setId.isNotEmpty && localId.isNotEmpty) {
       resolvedImage = 'https://images.pokemontcg.io/$setId/${localId}_hires.png';
-    } else if (resolvedImage.isEmpty && id.isNotEmpty) {
+    } else if (image.trim().isNotEmpty) {
+      resolvedImage = image.trim();
+      if (!resolvedImage.endsWith('.png') && !resolvedImage.endsWith('.jpg')) {
+        resolvedImage = '$resolvedImage/high.png';
+      }
+    } else if (id.isNotEmpty) {
       resolvedImage = 'https://assets.tcgdex.net/es/$id/high.png';
-    } else if (resolvedImage.isEmpty) {
+    } else {
       resolvedImage = 'https://product-images.tcgplayer.com/fit-in/400x400/placeholder.jpg';
-    } else if (!resolvedImage.startsWith('http')) {
-      resolvedImage = '$resolvedImage/high.png';
     }
 
     List<String> parsedTypes = [];
