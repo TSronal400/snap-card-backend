@@ -1,10 +1,10 @@
-
 import 'dart:convert';
 
 class TcgdexCard {
   final String id;
   final String name;
   final String imageUrl;
+  final List<String> alternativeImages;
   final String category;
   final String rarity;
   final String localId;
@@ -20,6 +20,7 @@ class TcgdexCard {
     required this.id,
     required this.name,
     required this.imageUrl,
+    this.alternativeImages = const [],
     required this.category,
     required this.rarity,
     this.localId = '',
@@ -39,19 +40,38 @@ class TcgdexCard {
     final localId = json['local_id']?.toString() ?? '';
     final rawTypes = json['types'];
 
-    String resolvedImage = '';
-    if (setId.isNotEmpty && localId.isNotEmpty) {
-      resolvedImage = 'https://images.pokemontcg.io/$setId/${localId}_hires.png';
-    } else if (image.trim().isNotEmpty) {
-      resolvedImage = image.trim();
-      if (!resolvedImage.endsWith('.png') && !resolvedImage.endsWith('.jpg')) {
-        resolvedImage = '$resolvedImage/high.png';
+    final List<String> altImages = [];
+
+    if (image.trim().isNotEmpty) {
+      String img = image.trim();
+      if (!img.endsWith('.png') && !img.endsWith('.jpg')) {
+        altImages.add('$img/high.png');
+      } else {
+        altImages.add(img);
       }
-    } else if (id.isNotEmpty) {
-      resolvedImage = 'https://assets.tcgdex.net/es/$id/high.png';
-    } else {
-      resolvedImage = 'https://product-images.tcgplayer.com/fit-in/400x400/placeholder.jpg';
     }
+
+    if (id.contains('-')) {
+      final parts = id.split('-');
+      final sId = parts[0];
+      final lId = parts.sublist(1).join('-');
+      altImages.add('https://assets.tcgdex.net/es/$sId/$lId/high.png');
+      altImages.add('https://assets.tcgdex.net/en/$sId/$lId/high.png');
+    }
+    if (id.isNotEmpty) {
+      altImages.add('https://assets.tcgdex.net/es/$id/high.png');
+    }
+
+    if (setId.isNotEmpty && localId.isNotEmpty) {
+      altImages.add('https://images.pokemontcg.io/$setId/${localId}_hires.png');
+      altImages.add('https://images.pokemontcg.io/$setId/$localId.png');
+    }
+
+    altImages.add('https://product-images.tcgplayer.com/fit-in/400x400/placeholder.jpg');
+
+    final uniqueUrls = altImages.toSet().toList();
+    final primaryImage = uniqueUrls.isNotEmpty ? uniqueUrls.first : 'https://product-images.tcgplayer.com/fit-in/400x400/placeholder.jpg';
+    final fallbackList = uniqueUrls.length > 1 ? uniqueUrls.sublist(1) : <String>[];
 
     List<String> parsedTypes = [];
     if (rawTypes is List) {
@@ -72,11 +92,12 @@ class TcgdexCard {
     return TcgdexCard(
       id: id,
       name: json['name']?.toString() ?? 'Carta Pokémon',
-      imageUrl: resolvedImage,
+      imageUrl: primaryImage,
+      alternativeImages: fallbackList,
       category: json['category']?.toString() ?? 'Pokémon',
       rarity: json['rarity']?.toString() ?? 'Sin especificar',
-      localId: json['local_id']?.toString() ?? '',
-      setId: json['set_id']?.toString() ?? '',
+      localId: localId.isEmpty ? (id.contains('-') ? id.split('-').last : '') : localId,
+      setId: setId.isEmpty ? (id.contains('-') ? id.split('-').first : '') : setId,
       setName: json['set_name']?.toString() ?? '',
       hp: int.tryParse(json['hp']?.toString() ?? ''),
       types: parsedTypes,

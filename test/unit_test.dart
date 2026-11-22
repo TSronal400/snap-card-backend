@@ -19,7 +19,8 @@ void main() {
       };
       final card = TcgdexCard.fromJson(cardJson);
       expect(card.id, 'base1-4');
-      expect(card.imageUrl, 'https://assets.tcgdex.net/es/base1-4/high.png');
+      expect(card.imageUrl, 'https://assets.tcgdex.net/es/base1/4/high.png');
+      expect(card.alternativeImages, contains('https://assets.tcgdex.net/es/base1-4/high.png'));
 
       final userJson = {'id': 1, 'name': 'Ronal', 'email': 'ronal@test.com'};
       final user = UserModel.fromJson(userJson);

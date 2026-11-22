@@ -16,6 +16,7 @@ void main() {
 
 class NetworkImageWithRetry extends StatefulWidget {
   final String imageUrl;
+  final List<String>? alternativeImages;
   final double? height;
   final BoxFit fit;
   final IconData fallbackIcon;
@@ -23,6 +24,7 @@ class NetworkImageWithRetry extends StatefulWidget {
   const NetworkImageWithRetry({
     super.key,
     required this.imageUrl,
+    this.alternativeImages,
     this.height,
     this.fit = BoxFit.contain,
     this.fallbackIcon = Icons.style,
@@ -33,28 +35,60 @@ class NetworkImageWithRetry extends StatefulWidget {
 }
 
 class _NetworkImageWithRetryState extends State<NetworkImageWithRetry> {
+  int _currentIndex = 0;
   Key _imageKey = UniqueKey();
+
+  List<String> get _urls {
+    final list = <String>[];
+    if (widget.imageUrl.isNotEmpty) list.add(widget.imageUrl);
+    if (widget.alternativeImages != null) {
+      list.addAll(widget.alternativeImages!);
+    }
+    return list.toSet().toList();
+  }
+
+  void _handleError() {
+    setState(() {
+      if (_currentIndex < _urls.length - 1) {
+        _currentIndex++;
+        _imageKey = UniqueKey();
+      } else {
+        _currentIndex = 0;
+      }
+    });
+  }
 
   void _retry() {
     setState(() {
+      _currentIndex = 0;
       _imageKey = UniqueKey();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.imageUrl.isEmpty) {
+    final urls = _urls;
+    if (urls.isEmpty) {
       return Icon(widget.fallbackIcon, size: widget.height ?? 52, color: Colors.white70);
     }
 
-    if (widget.imageUrl.startsWith('http://') || widget.imageUrl.startsWith('https://')) {
+    final currentUrl = urls[_currentIndex];
+
+    if (currentUrl.startsWith('http://') || currentUrl.startsWith('https://')) {
       return Image.network(
-        widget.imageUrl,
+        currentUrl,
         key: _imageKey,
         height: widget.height,
         fit: widget.fit,
         headers: const {'User-Agent': 'SnapCard/1.0'},
         errorBuilder: (context, error, stackTrace) {
+          if (_currentIndex < urls.length - 1) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _handleError();
+            });
+            return const SizedBox.shrink();
+          }
+
           return InkWell(
             onTap: _retry,
             child: Padding(
@@ -85,7 +119,7 @@ class _NetworkImageWithRetryState extends State<NetworkImageWithRetry> {
       );
     } else {
       return Image.file(
-        File(widget.imageUrl),
+        File(currentUrl),
         key: _imageKey,
         height: widget.height,
         fit: widget.fit,
@@ -97,9 +131,10 @@ class _NetworkImageWithRetryState extends State<NetworkImageWithRetry> {
   }
 }
 
-Widget buildCardImage(String imageUrl, IconData fallbackIcon, {double? height, BoxFit fit = BoxFit.contain}) {
+Widget buildCardImage(String imageUrl, IconData fallbackIcon, {double? height, BoxFit fit = BoxFit.contain, List<String>? alternativeImages}) {
   return NetworkImageWithRetry(
     imageUrl: imageUrl,
+    alternativeImages: alternativeImages,
     height: height,
     fit: fit,
     fallbackIcon: fallbackIcon,
