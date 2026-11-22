@@ -40,38 +40,36 @@ class TcgdexCard {
     final localId = json['local_id']?.toString() ?? '';
     final rawTypes = json['types'];
 
-    final List<String> altImages = [];
-
+    // 1. PRIMARIA: Mantener estrictamente el orden original que SÍ funcionaba
+    String primaryImage = '';
     if (image.trim().isNotEmpty) {
       String img = image.trim();
       if (!img.endsWith('.png') && !img.endsWith('.jpg')) {
-        altImages.add('$img/high.png');
+        primaryImage = '$img/high.png';
       } else {
-        altImages.add(img);
+        primaryImage = img;
       }
+    } else if (id.isNotEmpty) {
+      primaryImage = 'https://assets.tcgdex.net/es/$id/high.png';
+    } else {
+      primaryImage = 'https://product-images.tcgplayer.com/fit-in/400x400/placeholder.jpg';
     }
 
+    // 2. ALTERNATIVAS: Rutas de respaldo por si la primaria falla
+    final List<String> altImages = [];
     if (id.contains('-')) {
       final parts = id.split('-');
       final sId = parts[0];
       final lId = parts.sublist(1).join('-');
       altImages.add('https://assets.tcgdex.net/es/$sId/$lId/high.png');
-      altImages.add('https://assets.tcgdex.net/en/$sId/$lId/high.png');
     }
-    if (id.isNotEmpty) {
-      altImages.add('https://assets.tcgdex.net/es/$id/high.png');
-    }
-
     if (setId.isNotEmpty && localId.isNotEmpty) {
       altImages.add('https://images.pokemontcg.io/$setId/${localId}_hires.png');
       altImages.add('https://images.pokemontcg.io/$setId/$localId.png');
     }
-
     altImages.add('https://product-images.tcgplayer.com/fit-in/400x400/placeholder.jpg');
 
-    final uniqueUrls = altImages.toSet().toList();
-    final primaryImage = uniqueUrls.isNotEmpty ? uniqueUrls.first : 'https://product-images.tcgplayer.com/fit-in/400x400/placeholder.jpg';
-    final fallbackList = uniqueUrls.length > 1 ? uniqueUrls.sublist(1) : <String>[];
+    final fallbackList = altImages.where((url) => url != primaryImage).toSet().toList();
 
     List<String> parsedTypes = [];
     if (rawTypes is List) {

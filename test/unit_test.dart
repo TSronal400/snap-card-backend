@@ -19,8 +19,8 @@ void main() {
       };
       final card = TcgdexCard.fromJson(cardJson);
       expect(card.id, 'base1-4');
-      expect(card.imageUrl, 'https://assets.tcgdex.net/es/base1/4/high.png');
-      expect(card.alternativeImages, contains('https://assets.tcgdex.net/es/base1-4/high.png'));
+      expect(card.imageUrl, 'https://assets.tcgdex.net/es/base1-4/high.png');
+      expect(card.alternativeImages, contains('https://assets.tcgdex.net/es/base1/4/high.png'));
 
       final userJson = {'id': 1, 'name': 'Ronal', 'email': 'ronal@test.com'};
       final user = UserModel.fromJson(userJson);
@@ -42,6 +42,24 @@ void main() {
     test('2. Validación de Excepciones y Mensajes (ApiException)', () {
       final ex = ApiException('Error de conexión con el servidor');
       expect(ex.toString(), 'Error de conexión con el servidor');
+    });
+
+    test('4. Validación de rutas alternativas y respaldos de imágenes de cartas', () {
+      final cardJson = {
+        'id': '30th-040',
+        'name': 'Pikachu',
+        'image': '',
+        'set_id': '30th',
+        'local_id': '040',
+      };
+      final card = TcgdexCard.fromJson(cardJson);
+      expect(card.id, '30th-040');
+      expect(card.imageUrl, isNotEmpty);
+      expect(card.alternativeImages, isNotEmpty);
+      expect(
+        card.alternativeImages.any((url) => url.contains('tcgdex.net') || url.contains('pokemontcg.io')),
+        true,
+      );
     });
 
     testWidgets('3. Prueba de Pantallas Principales (Smoke Test - WelcomeScreen)', (WidgetTester tester) async {

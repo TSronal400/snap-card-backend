@@ -2270,6 +2270,26 @@ class _SearchScreenState extends State<SearchScreen> {
     } catch (_) {}
   }
 
+  Future<void> _precacheImages(List<TcgdexCard> cards) async {
+    for (final card in cards.take(10)) {
+      final urls = <String>[];
+      if (card.imageUrl.isNotEmpty) urls.add(card.imageUrl);
+      urls.addAll(card.alternativeImages);
+
+      for (final url in urls) {
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          try {
+            await precacheImage(
+              NetworkImage(url, headers: const {'User-Agent': 'SnapCard/1.0'}),
+              context,
+            );
+            break;
+          } catch (_) {}
+        }
+      }
+    }
+  }
+
   Future<void> _performSearch() async {
     final query = searchController.text.trim();
 
@@ -2295,6 +2315,7 @@ class _SearchScreenState extends State<SearchScreen> {
           searchResults = results;
           isLoading = false;
         });
+        _precacheImages(results);
       }
     } catch (e) {
       if (mounted) {
