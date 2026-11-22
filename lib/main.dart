@@ -1442,7 +1442,7 @@ else
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '\$${totalPrice.toStringAsFixed(2)} USD',
+                        'RD\$${totalPrice.toStringAsFixed(0)}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 22,
@@ -3651,7 +3651,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: ProfileStat(
-                  value: '\$${totalCollectionValue.toStringAsFixed(0)}',
+                  value: 'RD\$${totalCollectionValue.toStringAsFixed(0)}',
                   label: 'Valor total',
                 ),
               ),
